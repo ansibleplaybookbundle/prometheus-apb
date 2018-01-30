@@ -1,0 +1,28 @@
+---
+service_name: 'prometheus'
+app_name: "{{ service_name }}-apb"
+state: present
+
+prometheus_alertbuffer_image: 'registry.access.redhat.com/openshift3/prometheus-alert-buffer'
+prometheus_alertbuffer_version: 'latest'
+
+prometheus_alertmanager_image: 'registry.access.redhat.com/openshift3/prometheus-alertmanager'
+prometheus_alertmanager_version: 'latest'
+
+prometheus_proxy_name: "{{ lookup('env','PROM_OAUTH_PROXY_NAME') | default('oauth-proxy', true) }}"
+prometheus_proxy_tag: "{{ lookup('env','PROM_OAUTH_PROXY_TAG') | default('v1.0.0', true) }}"
+prometheus_proxy: "{{ registry }}/{{ prometheus_proxy_name }}:{{ prometheus_proxy_tag }}"
+
+prometheus_image: "registry.access.redhat.com/openshift3/prometheus"
+prometheus_version: "latest"
+prometheus_port: 9090
+prometheus_configmap_name: "prometheus-configmap"
+prometheus_configmap_volume_name: "prometheus-configmap-volume"
+prometheus_secret_name: "prometheus"
+prometheus_proxy_port: 4180
+
+# OAuth Proxy values
+proxy_serviceaccount_name: "oauth-proxy"
+proxy_image: "docker.io/openshift/oauth-proxy"
+proxy_version: "v1.1.0"
+

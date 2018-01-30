@@ -1,0 +1,111 @@
+---
+- name: "[PROMETHEUS APB][MAIN] Rendering ConfigMap template"
+  template:
+    src: "{{ item.temp_src }}"
+    dest: "{{ item.temp_dest }}"
+  with_items:
+    - { temp_src: 'prometheus-config-map.yml.j2', temp_dest: "/tmp/{{ service_name }}.yml" }
+
+- name: "[PROMETHEUS APB][MAIN] Creating Openshift ConfigMap resource"
+  shell: "oc create configmap {{ prometheus_configmap_name }} --from-file={{ item.temp_dest }} -n {{ namespace }}"
+  with_items:
+    - { temp_dest: "/tmp/{{ service_name }}.yml" }
+
+- name: "[PROMETHEUS APB][MAIN] Create Prometheus PVC"
+  k8s_v1_persistent_volume_claim:
+    name: "{{ service_name }}-claim"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    access_modes:
+      - ReadWriteOnce
+    resources_requests:
+      storage: "{{ PROMETHEUS_STORAGE_SIZE }}Gi"
+    state: "{{ state }}"
+  register: prometheus_pvc
+
+- name: "[PROMETHEUS APB][MAIN] Set to {{ state }} the prometheus Deployment Config"
+  openshift_v1_deployment_config:
+    name: "{{ service_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    replicas: 1
+    selector:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    spec_template_metadata_labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+      #    spec_template_spec_service_account_name: "{{ proxy_serviceaccount_name }}"
+    containers:
+      - env:
+        image: "{{ prometheus_image }}:{{ prometheus_version }}"
+        name: "{{ service_name }}"
+        ports:
+        - container_port: "{{ prometheus_port }}"
+          protocol: TCP
+        volume_mounts:
+          - mount_path: "/etc/{{ service_name }}"
+            name: "{{ prometheus_configmap_volume_name }}"
+          - mount_path: "/{{ service_name }}"
+            name: "{{ service_name }}-data"
+    volumes:
+      - name: "{{ prometheus_configmap_volume_name }}"
+        config_map:
+          defaultMode: 420
+          name: "{{ prometheus_configmap_name }}"
+      - name: "{{ service_name }}-data"
+        persistent_volume_claim:
+          claim_name: "{{ service_name }}-claim"
+  register: prometheus_dc
+
+- name: "[PROMETHEUS APB][MAIN] Set to {{ state }} the Prometheus Service"
+  k8s_v1_service:
+    name: "{{ service_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    selector:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    ports:
+    - name: "{{ service_name }}-{{ prometheus_port }}"
+      port: "{{ prometheus_port }}"
+      target_port: "{{ prometheus_port }}"
+    state: "{{ state }}"
+  register: prometheus_svc
+
+- name: "[PROMETHEUS APB][MAIN] Set to {{ state }} the Prometheus Route"
+  openshift_v1_route:
+    name: "{{ service_name }}"
+    namespace: '{{ namespace }}'
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    to_name: "{{ service_name }}"
+    port_target_port: "{{ service_name }}-{{ prometheus_port }}"
+  register: prometheus_route
+
+- name: "[PROMETHEUS APB][MAIN] Rendering {{ item.res_name }} template"
+  template:
+    src: "{{ item.temp_src }}"
+    dest: "{{ item.temp_dest }}"
+  with_items:
+    - { res_name: 'Prometheus Secret', temp_src: 'secret.yml.j2', temp_dest: '/tmp/prometheus-secret.yml' }
+
+- name: "[PROMETHEUS APB][MAIN] Creating Openshift {{ item.res_name }} resource"
+  shell: "oc create -f {{ item.temp_dest }} -n {{ namespace }}"
+  with_items:
+    - { res_name: 'secret', temp_dest: '/tmp/prometheus-secret.yml' }
+
+  #- name: "[PROMETHEUS APB][MAIN] Entering Development mode" 
+  #  include_tasks: dev.yml
+  #  when: _apb_plan_id == "dev"
+  #
+  #- name: "[PROMETHEUS APB][MAIN] Entering Production mode" 
+  #  include_tasks: prod.yml
+  #  when: _apb_plan_id == "prod"

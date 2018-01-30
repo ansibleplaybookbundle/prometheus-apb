@@ -1,0 +1,77 @@
+---
+global:
+  evaluation_interval: 15s
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'pod'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['localhost:9090']
+
+#  - job_name: mcp-ssl-services
+#    scheme: https
+#    tls_config:
+#      insecure_skip_verify: true
+#    kubernetes_sd_configs:
+#    - role: service
+#      namespaces:
+#        names:
+#          - {{ namespace }}
+#
+#    relabel_configs:
+#      - action: keep
+#        regex: \/.*
+#        source_labels:
+#          - __meta_kubernetes_service_annotation_org_aerogear_metrics_ssl_endpoint
+#      - source_labels:
+#          - __address__
+#        target_label: __param_target
+#      - source_labels:
+#          - __param_target
+#        target_label: instance
+#      - action: labelmap
+#        regex: __meta_kubernetes_service_label_(.+)
+#      - source_labels:
+#          - __meta_kubernetes_namespace
+#        target_label: kubernetes_namespace
+#      - source_labels:
+#          - __meta_kubernetes_service_name
+#        target_label: kubernetes_name
+#      - source_labels: [__meta_kubernetes_service_annotation_org_aerogear_metrics_ssl_endpoint]
+#        regex: (.+)
+#        target_label: __metrics_path__
+#
+#  - job_name: mcp-plain-services
+#    scheme: http
+#    kubernetes_sd_configs:
+#    - role: service
+#      namespaces:
+#        names:
+#          - {{ namespace }}
+#    relabel_configs:
+#      - action: keep
+#        regex: \/.*
+#        source_labels:
+#          - __meta_kubernetes_service_annotation_org_aerogear_metrics_plain_endpoint
+#      - source_labels:
+#          - __address__
+#        target_label: __param_target
+#      - source_labels:
+#          - __param_target
+#        target_label: instance
+#      - action: labelmap
+#        regex: __meta_kubernetes_service_label_(.+)
+#      - source_labels:
+#          - __meta_kubernetes_namespace
+#        target_label: kubernetes_namespace
+#      - source_labels:
+#          - __meta_kubernetes_service_name
+#        target_label: kubernetes_name
+#      - source_labels: [__meta_kubernetes_service_annotation_org_aerogear_metrics_plain_endpoint]
+#        regex: (.+)
+#        target_label: __metrics_path__

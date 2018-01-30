@@ -1,0 +1,25 @@
+version: 1.0
+name: prometheus-apb
+description: Deploy Prometheus on your Project
+bindable: False
+async: optional
+metadata:
+  displayName: Prometheus (APB)
+  imageUrl: https://avatars1.githubusercontent.com/u/3380462?s=200&v=4
+  providerDisplayName: "Red Hat, Inc."
+  longDescription: Prometheus is an open-source systems monitoring and alerting toolkit originally built at SoundCloud. Since its inception in 2012, many companies and organizations have adopted Prometheus, and the project has a very active developer and user community. It is now a standalone open source project and maintained independently of any company. To emphasize this, and to clarify the project's governance structure, Prometheus joined the Cloud Native Computing Foundation in 2016 as the second hosted project, after Kubernetes.
+  serviceName: prometheus
+plans:
+  - name: default
+    description: Deployment of Prometheus for metrics and data view
+    free: True
+    metadata:
+      displayName: Default
+      longDescription: Deploy Prometheus Stack on Openshift
+      cost: €0.00
+    parameters:
+      - name: PROMETHEUS_STORAGE_SIZE
+        required: True
+        default: 10
+        type: number
+        title: Prometheus Storage Size (Gb)
