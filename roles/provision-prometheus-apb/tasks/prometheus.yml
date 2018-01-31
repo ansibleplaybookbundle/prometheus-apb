@@ -1,15 +1,21 @@
 ---
-- name: "[PROMETHEUS APB][PROMETHEUS] Rendering ConfigMap template"
-  template:
-    src: "{{ item.temp_src }}"
-    dest: "{{ item.temp_dest }}"
-  with_items:
-    - { temp_src: 'prometheus-config-map.yml.j2', temp_dest: "/tmp/{{ service_name }}.yml" }
-
 - name: "[PROMETHEUS APB][PROMETHEUS] Creating Openshift ConfigMap resource"
-  shell: "oc create configmap {{ prometheus_configmap_name }} --from-file={{ item.temp_dest }} -n {{ namespace }}"
-  with_items:
-    - { temp_dest: "/tmp/{{ service_name }}.yml" }
+  k8s_v1_config_map:
+    state: "{{ state }}"
+    name: "{{ prometheus_configmap_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    resource_definition:
+      kind: 'ConfigMap'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_configmap_name }}"
+        namespace: "{{ namespace }}"
+      data:
+        prometheus.yml: "{{ lookup('file', 'prometheus-config-map.yml.j2') }}"
+  register: prometheus_cm
 
 - name: "[PROMETHEUS APB][PROMETHEUS] Create Prometheus PVC"
   k8s_v1_persistent_volume_claim:

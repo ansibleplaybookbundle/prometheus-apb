@@ -41,9 +41,14 @@ apb push --broker=https://asb-1338-ansible-service-broker.172.17.0.1.nip.io
 apb run --project prom-apb-test-01
 ```
 
+## Elements already done
+
+- Prometheus Server
+- Prometheus Alert Manager
+
 ## To Do
 
-- AlertManager
+- Binding Prometheus <-> AlertManager
 - AlertBuffer
 - Authentication
 - Deprovision
