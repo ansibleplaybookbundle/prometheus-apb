@@ -23,3 +23,8 @@ plans:
         default: 10
         type: number
         title: Prometheus Storage Size (Gb)
+      - name: PROMETHEUS_AM_STORAGE_SIZE
+        required: True
+        default: 10
+        type: number
+        title: Prometheus Alert Manager Storage Size (Gb)
