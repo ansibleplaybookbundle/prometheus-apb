@@ -1,4 +1,40 @@
 ---
+- name: '[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} the Prometheus ServiceAccount'
+  k8s_v1_service_account:
+    state: "{{ state }}"
+    name: "{{ service_name }}"
+    namespace: "{{ namespace }}"
+  register: prometheus_sa
+
+- name: "[PROMETHEUS APB][PROMETHEUS] Recover secret name"
+  set_fact:
+    prometheus_sa_token_name: "{{ item.name }}"
+  with_list: "{{ prometheus_sa.service_account.secrets }}"
+  when: "'prometheus-token' in item.name"
+
+- name: "[PROMETHEUS APB][PROMETHEUS] Recovering Service Account token"
+  k8s_v1_secret:
+    state: "{{ state }}"
+    name: "{{ prometheus_sa_token_name }}"
+    namespace: "{{ namespace }}"
+  register: prometheus_sa_token
+
+- name: "[PROMETHEUS APB][PROMETHEUS] Creating a fact with the secret token of Service Account"
+  set_fact:
+    prometheus_sa_token: "{{ prometheus_sa_token.secret.data.token | b64decode }}"
+
+- name: Create RoleBinding
+  k8s_v1beta1_role_binding:
+    name: "{{ service_name }}-view"
+    namespace: "{{ namespace }}"
+    state: present
+    role_ref_name: view
+    role_ref_kind: ClusterRole
+    subjects:
+    - kind: ServiceAccount
+      name: "{{ service_name }}"
+      namespace: "{{ namespace }}"
+
 - name: "[PROMETHEUS APB][PROMETHEUS] Creating Openshift ConfigMap resource"
   k8s_v1_config_map:
     state: "{{ state }}"
@@ -46,7 +82,7 @@
     spec_template_metadata_labels:
       app: "{{ service_name }}"
       service: "{{ service_name }}"
-      #    spec_template_spec_service_account_name: "{{ proxy_serviceaccount_name }}"
+    spec_template_spec_service_account_name: "{{ service_name }}"
     containers:
       - env:
         image: "{{ prometheus_image }}:{{ prometheus_version }}"
