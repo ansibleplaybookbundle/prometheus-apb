@@ -14,7 +14,7 @@
         name: "{{ prometheus_configmap_name }}"
         namespace: "{{ namespace }}"
       data:
-        prometheus.yml: "{{ lookup('file', 'prometheus-config-map.yml.j2') }}"
+        prometheus.yml: "{{ lookup('template', 'prometheus-config-map.yml.j2') }}"
   register: prometheus_cm
 
 - name: "[PROMETHEUS APB][PROMETHEUS] Create Prometheus PVC"
