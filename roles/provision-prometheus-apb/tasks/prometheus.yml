@@ -19,6 +19,7 @@
 
 - name: "[PROMETHEUS APB][PROMETHEUS] Create Prometheus PVC"
   k8s_v1_persistent_volume_claim:
+    state: "{{ state }}"
     name: "{{ prometheus_pvc_name }}"
     namespace: "{{ namespace }}"
     labels:
@@ -28,11 +29,11 @@
       - ReadWriteOnce
     resources_requests:
       storage: "{{ PROMETHEUS_STORAGE_SIZE }}Gi"
-    state: "{{ state }}"
   register: prometheus_pvc
 
 - name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} the prometheus Deployment Config"
   openshift_v1_deployment_config:
+    state: "{{ state }}"
     name: "{{ service_name }}"
     namespace: "{{ namespace }}"
     labels:
@@ -70,6 +71,7 @@
 
 - name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} the Prometheus Service"
   k8s_v1_service:
+    state: "{{ state }}"
     name: "{{ service_name }}"
     namespace: "{{ namespace }}"
     labels:
@@ -82,11 +84,11 @@
     - name: "{{ service_name }}-{{ prometheus_port }}"
       port: "{{ prometheus_port }}"
       target_port: "{{ prometheus_port }}"
-    state: "{{ state }}"
   register: prometheus_svc
 
 - name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} the Prometheus Route"
   openshift_v1_route:
+    state: "{{ state }}"
     name: "{{ service_name }}"
     namespace: '{{ namespace }}'
     labels:
@@ -96,17 +98,25 @@
     port_target_port: "{{ service_name }}-{{ prometheus_port }}"
   register: prometheus_route
 
-- name: "[PROMETHEUS APB][PROMETHEUS] Rendering {{ item.res_name }} template"
-  template:
-    src: "{{ item.temp_src }}"
-    dest: "{{ item.temp_dest }}"
-  with_items:
-    - { res_name: 'Prometheus Secret', temp_src: 'secret.yml.j2', temp_dest: '/tmp/prometheus-secret.yml' }
-
-- name: "[PROMETHEUS APB][PROMETHEUS] Creating Openshift {{ item.res_name }} resource"
-  shell: "oc create -f {{ item.temp_dest }} -n {{ namespace }}"
-  with_items:
-    - { res_name: 'secret', temp_dest: '/tmp/prometheus-secret.yml' }
+- name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} the Prometheus Secret"
+  k8s_v1_secret:
+    state: "{{ state }}"
+    name: "{{ prometheus_secret_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    resource_definition:
+      kind: 'Secret'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_secret_name }}"
+        namespace: "{{ namespace }}"
+      string_data:
+        name: "{{ prometheus_secret_name }}"
+        type: "{{ prometheus_secret_name }}"
+        uri: "https://{{ prometheus_route.route.spec.host }}"
+  register: prometheus_secret
 
   #- name: "[PROMETHEUS APB][PROMETHEUS] Entering Production mode" 
   #  include_tasks: prod.yml
