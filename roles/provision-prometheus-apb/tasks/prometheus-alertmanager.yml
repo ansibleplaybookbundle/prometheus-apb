@@ -1,16 +1,4 @@
 ---
-# - name: "[PROMETHEUS APB][ALERTMANAGER] Rendering Prometheus-AlertManager ConfigMap template "
-#   template:
-#     src: "{{ item.temp_src }}"
-#     dest: "{{ item.temp_dest }}"
-#   with_items:
-#     - { temp_src: 'prometheus-alertmanager-config-map.yml.j2', temp_dest: "/tmp/config.yml" }
-# 
-# - name: "[PROMETHEUS APB][ALERTMANAGER] Creating Openshift ConfigMap resource"
-#   shell: "oc create configmap {{ prometheus_alertmanager_configmap_name }} --from-file={{ item.temp_dest }} -n {{ namespace }}"
-#   with_items:
-#     - { temp_dest: "/tmp/config.yml" }
-
 - name: "[PROMETHEUS APB][ALERTMANAGER] Creating Openshift ConfigMap resource for Alertmanger Configuration"
   k8s_v1_config_map:
     state: "{{ state }}"
