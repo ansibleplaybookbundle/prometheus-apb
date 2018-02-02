@@ -3,6 +3,8 @@ global:
   evaluation_interval: 15s
   scrape_interval: 15s
 
+rule_files:
+  - "/{{ prometheus_configmap_rules_name }}/*.rules.yaml"
 
 alerting:
   alertmanagers:

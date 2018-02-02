@@ -23,11 +23,11 @@
   set_fact:
     prometheus_sa_token: "{{ prometheus_sa_token.secret.data.token | b64decode }}"
 
-- name: Create RoleBinding
+- name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} RoleBinding for Service Account"
   k8s_v1beta1_role_binding:
+    state: "{{ state }}"
     name: "{{ service_name }}-view"
     namespace: "{{ namespace }}"
-    state: present
     role_ref_name: view
     role_ref_kind: ClusterRole
     subjects:
@@ -35,7 +35,7 @@
       name: "{{ service_name }}"
       namespace: "{{ namespace }}"
 
-- name: "[PROMETHEUS APB][PROMETHEUS] Creating Openshift ConfigMap resource"
+- name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} Openshift ConfigMap resource"
   k8s_v1_config_map:
     state: "{{ state }}"
     name: "{{ prometheus_configmap_name }}"
@@ -53,7 +53,31 @@
         prometheus.yml: "{{ lookup('template', 'prometheus-config-map.yml.j2') }}"
   register: prometheus_cm
 
-- name: "[PROMETHEUS APB][PROMETHEUS] Create Prometheus PVC"
+- name: "[PROMETHEUS APB][ALERTMANAGER] Set to {{ state }} Openshift ConfigMap resource with Prometheus Rules"
+  k8s_v1_config_map:
+    state: "{{ state }}"
+    name: "{{ prometheus_configmap_rules_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    resource_definition:
+      kind: 'ConfigMap'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_configmap_rules_name }}"
+        namespace: "{{ namespace }}"
+      data:
+        #cpu-usage.rules: "{{ lookup('file', 'prometheus-rules/cpu-usage.rules') }}"
+        #es-logs-status.rules: "{{ lookup('file', 'prometheus-rules/es-logs-status.rules') }}"
+        #load-average.rules: "{{ lookup('file', 'prometheus-rules/load-average.rules') }}"
+        #low-disk-space.rules: "{{ lookup('file', 'prometheus-rules/low-disk-space.rules') }}"
+        #mem-usage.rules: "{{ lookup('file', 'prometheus-rules/mem-usage.rules') }}"
+        general.rules.yaml: "{{ lookup('file', 'prometheus-rules/general.rules.yaml') }}"
+        prometheus.rules.yaml: "{{ lookup('file', 'prometheus-rules/prometheus.rules.yaml') }}"
+  register: prometheus_cm_rules
+
+- name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} Prometheus PVC"
   k8s_v1_persistent_volume_claim:
     state: "{{ state }}"
     name: "{{ prometheus_pvc_name }}"
@@ -91,11 +115,16 @@
         - container_port: "{{ prometheus_port }}"
           protocol: TCP
         volume_mounts:
+          - mount_path: "/{{ prometheus_configmap_rules_name }}"
+            name: "{{ prometheus_configmap_rules_name }}"
           - mount_path: "/etc/{{ service_name }}"
             name: "{{ prometheus_configmap_volume_name }}"
           - mount_path: "/{{ service_name }}"
             name: "{{ prometheus_data_volume_name }}"
     volumes:
+      - name: "{{ prometheus_configmap_rules_name }}"
+        config_map:
+          name: "{{ prometheus_configmap_rules_name }}"
       - name: "{{ prometheus_configmap_volume_name }}"
         config_map:
           defaultMode: 420

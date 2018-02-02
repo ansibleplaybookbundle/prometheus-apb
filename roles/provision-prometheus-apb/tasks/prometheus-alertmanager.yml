@@ -111,9 +111,9 @@
       service: "{{ service_name_am }}"
     selector:
       app: "{{ service_name_am }}"
-      service: "{{ service_name }}"
+      service: "{{ service_name_am }}"
     ports:
-    - name: "{{ service_name }}-{{ prometheus_alertmanager_port }}"
+    - name: "{{ service_name_am }}-{{ prometheus_alertmanager_port }}"
       port: "{{ prometheus_alertmanager_port }}"
       target_port: "{{ prometheus_alertmanager_port }}"
     state: "{{ state }}"
