@@ -68,11 +68,6 @@
         name: "{{ prometheus_configmap_rules_name }}"
         namespace: "{{ namespace }}"
       data:
-        #cpu-usage.rules: "{{ lookup('file', 'prometheus-rules/cpu-usage.rules') }}"
-        #es-logs-status.rules: "{{ lookup('file', 'prometheus-rules/es-logs-status.rules') }}"
-        #load-average.rules: "{{ lookup('file', 'prometheus-rules/load-average.rules') }}"
-        #low-disk-space.rules: "{{ lookup('file', 'prometheus-rules/low-disk-space.rules') }}"
-        #mem-usage.rules: "{{ lookup('file', 'prometheus-rules/mem-usage.rules') }}"
         general.rules.yaml: "{{ lookup('file', 'prometheus-rules/general.rules.yaml') }}"
         prometheus.rules.yaml: "{{ lookup('file', 'prometheus-rules/prometheus.rules.yaml') }}"
   register: prometheus_cm_rules
