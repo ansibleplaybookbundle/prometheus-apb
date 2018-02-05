@@ -14,7 +14,19 @@ prometheus_data_volume_name: "{{ service_name }}-data"
 prometheus_pvc_name: "{{ service_name }}-claim"
 prometheus_secret_name: "prometheus"
 
-# AlertManager
+# Addons
+## Oauth-Proxy
+service_name_proxy: "{{ service_name }}-proxy"
+prometheus_proxy_image: 'registry.access.redhat.com/openshift3/oauth-proxy'
+prometheus_proxy_version: 'latest'
+prometheus_proxy_container_port: 8443
+prometheus_proxy_svc_port: 443
+prometheus_proxy_tls_secret_name: "{{ service_name_proxy }}-tls"
+prometheus_proxy_configmap_oauth_name: "{{ service_name_proxy }}-oauth-configmap"
+prometheus_proxy_tls_skip_verify: 'true'
+prometheus_proxy_cookie_secret: 'SECRET'
+
+## AlertManager
 service_name_am: "{{ service_name }}-alertmanager"
 prometheus_alertmanager_image: 'registry.access.redhat.com/openshift3/prometheus-alertmanager'
 prometheus_alertmanager_version: 'latest'
@@ -24,18 +36,8 @@ prometheus_alertmanager_data_volume_name: "{{ service_name_am }}-data"
 prometheus_alertmanager_port: 9093
 prometheus_alertmanager_pvc_name: "{{ service_name_am }}-claim"
 
-# AlertBuffer
+## AlertBuffer
 prometheus_alertbuffer_image: 'registry.access.redhat.com/openshift3/prometheus-alert-buffer'
 prometheus_alertbuffer_version: 'latest'
 
-# Proxy
-prometheus_proxy_name: "{{ lookup('env','PROM_OAUTH_PROXY_NAME') | default('oauth-proxy', true) }}"
-prometheus_proxy_tag: "{{ lookup('env','PROM_OAUTH_PROXY_TAG') | default('v1.0.0', true) }}"
-prometheus_proxy: "{{ registry }}/{{ prometheus_proxy_name }}:{{ prometheus_proxy_tag }}"
-prometheus_proxy_port: 4180
-
-# OAuth Proxy values
-proxy_serviceaccount_name: "oauth-proxy"
-proxy_image: "docker.io/openshift/oauth-proxy"
-proxy_version: "v1.1.0"
 

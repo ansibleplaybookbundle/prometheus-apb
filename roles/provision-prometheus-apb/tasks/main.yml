@@ -8,6 +8,11 @@
 #   when: _apb_plan_id == "prod"
 - name: "[PROMETHEUS APB][MAIN] Deploying Prometheus"
   include_tasks: prometheus.yml
+  when: not PROMETHEUS_SECURED_DEPLOYMENT | bool
 
-- name: "[PROMETHEUS APB][MAIN] Deploying Prometheus-AlertManager"
-  include_tasks: prometheus-alertmanager.yml
+- name: "[PROMETHEUS APB][MAIN] Deploying Prometheus-Oauth"
+  include_tasks: prometheus-oauth.yml
+  when: PROMETHEUS_SECURED_DEPLOYMENT | bool
+
+  #- name: "[PROMETHEUS APB][MAIN] Deploying Prometheus-AlertManager"
+  #  include_tasks: prometheus-alertmanager.yml

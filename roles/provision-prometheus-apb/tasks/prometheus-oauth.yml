@@ -1,0 +1,234 @@
+---
+- name: '[PROMETHEUS APB][OAUTH-PROXY] Renderize template of Service Account'
+  template:
+    src: 'prometheus-oauth-service-account.yml.j2'
+    dest: '/tmp/prometheus-oauth-service-account.yml'
+  register: prometheus_sa_file
+
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} Prometheus ServiceAccount"
+  k8s_v1_service_account:
+    state: "{{ state }}"
+    name: "{{ service_name_proxy }}"
+    namespace: "{{ namespace }}"
+    src: "{{ prometheus_sa_file.dest }}"
+  register: prometheus_sa
+
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Recover secret name"
+  set_fact:
+    prometheus_sa_token_name: "{{ item.name }}"
+  with_list: "{{ prometheus_sa.service_account.secrets }}"
+  when: "'prometheus-proxy-token' in item.name"
+
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Recovering Service Account token"
+  k8s_v1_secret:
+    state: "{{ state }}"
+    name: "{{ prometheus_sa_token_name }}"
+    namespace: "{{ namespace }}"
+  register: prometheus_sa_token
+
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Creating a fact with the secret token of Service Account"
+  set_fact:
+    prometheus_sa_token: "{{ prometheus_sa_token.secret.data.token | b64decode }}"
+
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} RoleBinding for Service Account"
+  k8s_v1beta1_role_binding:
+    state: "{{ state }}"
+    name: "{{ service_name_proxy }}-view"
+    namespace: "{{ namespace }}"
+    role_ref_name: view
+    role_ref_kind: ClusterRole
+    subjects:
+    - kind: ServiceAccount
+      name: "{{ service_name_proxy }}"
+      namespace: "{{ namespace }}"
+
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} Openshift ConfigMap resource"
+  k8s_v1_config_map:
+    state: "{{ state }}"
+    name: "{{ prometheus_configmap_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name_proxy }}"
+      service: "{{ service_name_proxy }}"
+    resource_definition:
+      kind: 'ConfigMap'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_configmap_name }}"
+        namespace: "{{ namespace }}"
+      data:
+        prometheus.yml: "{{ lookup('template', 'prometheus-config-map.yml.j2') }}"
+  register: prometheus_cm
+
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} Openshift Oauth-Proxy ConfigMap resource"
+  k8s_v1_config_map:
+    state: "{{ state }}"
+    name: "{{ prometheus_proxy_configmap_oauth_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name_proxy }}"
+      service: "{{ service_name_proxy }}"
+    resource_definition:
+      kind: 'ConfigMap'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_proxy_configmap_oauth_name }}"
+        namespace: "{{ namespace }}"
+      data:
+        prometheus-oauth-proxy.yml: "{{ lookup('template', 'prometheus-oauth-proxy-config-map.yml.j2') }}"
+  register: prometheus_cm
+
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} Openshift ConfigMap resource with Prometheus Rules"
+  k8s_v1_config_map:
+    state: "{{ state }}"
+    name: "{{ prometheus_configmap_rules_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name_proxy }}"
+      service: "{{ service_name_proxy }}"
+    resource_definition:
+      kind: 'ConfigMap'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_configmap_rules_name }}"
+        namespace: "{{ namespace }}"
+      data:
+        general.rules.yaml: "{{ lookup('file', 'prometheus-rules/general.rules.yaml') }}"
+        prometheus.rules.yaml: "{{ lookup('file', 'prometheus-rules/prometheus.rules.yaml') }}"
+  register: prometheus_cm_rules
+
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} Prometheus PVC"
+  k8s_v1_persistent_volume_claim:
+    state: "{{ state }}"
+    name: "{{ prometheus_pvc_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name_proxy }}"
+      service: "{{ service_name_proxy }}"
+    access_modes:
+      - ReadWriteOnce
+    resources_requests:
+      storage: "{{ PROMETHEUS_STORAGE_SIZE }}Gi"
+  register: prometheus_pvc
+
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} the Prometheus Service"
+  k8s_v1_service:
+    state: "{{ state }}"
+    name: "{{ service_name_proxy }}"
+    namespace: "{{ namespace }}"
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: "{{ prometheus_proxy_tls_secret_name }}"
+    labels:
+      app: "{{ service_name_proxy }}"
+      service: "{{ service_name_proxy }}"
+    selector:
+      app: "{{ service_name_proxy }}"
+      service: "{{ service_name_proxy }}"
+    ports:
+    - name: "{{ service_name_proxy }}-{{ prometheus_proxy_svc_port }}"
+      port: "{{ prometheus_proxy_svc_port }}"
+      target_port: "{{ prometheus_proxy_container_port }}"
+  register: prometheus_svc
+
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} the Prometheus Route"
+  openshift_v1_route:
+    state: "{{ state }}"
+    name: "{{ service_name_proxy }}"
+    namespace: '{{ namespace }}'
+    labels:
+      app: "{{ service_name_proxy }}"
+      service: "{{ service_name_proxy }}"
+    to_name: "{{ service_name_proxy }}"
+    port_target_port: "{{ service_name_proxy }}-{{ prometheus_proxy_svc_port }}"
+    tls_termination: 'reencrypt'
+  register: prometheus_route
+
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} the Prometheus Deployment Config"
+  openshift_v1_deployment_config:
+    state: "{{ state }}"
+    name: "{{ service_name_proxy }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name_proxy }}"
+      service: "{{ service_name_proxy }}"
+    replicas: 1
+    selector:
+      app: "{{ service_name_proxy }}"
+      service: "{{ service_name_proxy }}"
+    spec_template_metadata_labels:
+      app: "{{ service_name_proxy }}"
+      service: "{{ service_name_proxy }}"
+    spec_template_spec_service_account_name: "{{ service_name_proxy }}"
+    containers:
+      ## Oauth-Proxy DC
+      - name: "{{ service_name_proxy }}"
+        image: "{{ prometheus_proxy_image }}:{{ prometheus_proxy_version }}"
+        ports:
+        - container_port: "{{ prometheus_proxy_container_port }}"
+          protocol: TCP
+        args:
+          - --provider=openshift
+          - --openshift-service-account={{ service_name_proxy }}
+          - --config=/{{ service_name_proxy }}/prometheus-oauth-proxy.yml
+          - --openshift-sar={"namespace":"{{ namespace }}","resource":"deploymentconfigs","name":"{{ service_name }}","verb":"update"}
+        volume_mounts:
+          - mount_path: '/etc/tls/private'
+            name: "{{ prometheus_proxy_tls_secret_name }}"
+          - mount_path: '/{{ service_name_proxy }}'
+            name: "{{ prometheus_proxy_configmap_oauth_name }}"
+      ## Prometheus DC
+      - name: "{{ service_name }}"
+        image: "{{ prometheus_image }}:{{ prometheus_version }}"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - container_port: "{{ prometheus_port }}"
+          protocol: TCP
+        volume_mounts:
+          - mount_path: "/{{ prometheus_configmap_rules_name }}"
+            name: "{{ prometheus_configmap_rules_name }}"
+          - mount_path: "/etc/{{ service_name }}"
+            name: "{{ prometheus_configmap_volume_name }}"
+          - mount_path: "/{{ service_name }}"
+            name: "{{ prometheus_data_volume_name }}"
+    volumes:
+      - name: "{{ prometheus_configmap_rules_name }}"
+        config_map:
+          name: "{{ prometheus_configmap_rules_name }}"
+      - name: "{{ prometheus_configmap_volume_name }}"
+        config_map:
+          defaultMode: 420
+          name: "{{ prometheus_configmap_name }}"
+      - name: "{{ prometheus_data_volume_name }}"
+        persistent_volume_claim:
+          claim_name: "{{ prometheus_pvc_name }}"
+      - name: "{{ prometheus_proxy_configmap_oauth_name }}"
+        config_map:
+          name: "{{ prometheus_proxy_configmap_oauth_name }}"
+      - name: "{{ prometheus_proxy_tls_secret_name }}"
+        secret:
+          secret_name: "{{ prometheus_proxy_tls_secret_name }}"
+  register: prometheus_dc
+
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} the Prometheus Secret"
+  k8s_v1_secret:
+    state: "{{ state }}"
+    name: "{{ prometheus_secret_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name_proxy }}"
+      service: "{{ service_name_proxy }}"
+    resource_definition:
+      kind: 'Secret'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_secret_name }}"
+        namespace: "{{ namespace }}"
+      string_data:
+        name: "{{ prometheus_secret_name }}"
+        type: "{{ prometheus_secret_name }}"
+        uri: "https://{{ prometheus_route.route.spec.host }}"
+  register: prometheus_secret
+
+  #- name: "[PROMETHEUS APB][OAUTH-PROXY] Entering Production mode" 
+  #  include_tasks: prod.yml
+  #  when: _apb_plan_id == "prod"

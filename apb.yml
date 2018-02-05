@@ -18,6 +18,11 @@ plans:
       longDescription: Deploy Prometheus Stack on Openshift
       cost: €0.00
     parameters:
+      - name: PROMETHEUS_SECURED_DEPLOYMENT
+        required: True
+        default: True
+        type: bool
+        title: Prometheus Secured with Oauth-Proxy
       - name: PROMETHEUS_STORAGE_SIZE
         required: True
         default: 10

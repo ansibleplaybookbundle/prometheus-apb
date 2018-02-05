@@ -45,13 +45,15 @@ apb run --project prom-apb-test-01
 
 - Prometheus Server
 - Prometheus Alert Manager
+- Binding Prometheus <-> AlertManager
+- Authentication
 
 ## To Do
 
-- Binding Prometheus <-> AlertManager
 - AlertBuffer
-- Authentication
 - Deprovision
+- Graphana
+- Node Exporter
 - APB Test
 
 ## References
