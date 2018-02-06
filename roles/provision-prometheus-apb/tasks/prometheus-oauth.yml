@@ -97,7 +97,7 @@
         prometheus.rules.yaml: "{{ lookup('file', 'prometheus-rules/prometheus.rules.yaml') }}"
   register: prometheus_cm_rules
 
-- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} Prometheus PVC"
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} Prometheus PVC for Persistent plan"
   k8s_v1_persistent_volume_claim:
     state: "{{ state }}"
     name: "{{ prometheus_pvc_name }}"
@@ -110,6 +110,7 @@
     resources_requests:
       storage: "{{ PROMETHEUS_STORAGE_SIZE }}Gi"
   register: prometheus_pvc
+  when: _apb_plan_id == 'persistent'
 
 - name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} the Prometheus Service"
   k8s_v1_service:
@@ -143,7 +144,7 @@
     tls_termination: 'reencrypt'
   register: prometheus_route
 
-- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} the Prometheus Deployment Config"
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} the Prometheus Deployment Config for Persistent plan"
   openshift_v1_deployment_config:
     state: "{{ state }}"
     name: "{{ service_name_proxy }}"
@@ -208,6 +209,73 @@
         secret:
           secret_name: "{{ prometheus_proxy_tls_secret_name }}"
   register: prometheus_dc
+  when: _apb_plan_id == 'persistent'
+
+- name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} the Prometheus Deployment Config for Ephemeral plan"
+  openshift_v1_deployment_config:
+    state: "{{ state }}"
+    name: "{{ service_name_proxy }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name_proxy }}"
+      service: "{{ service_name_proxy }}"
+    replicas: 1
+    selector:
+      app: "{{ service_name_proxy }}"
+      service: "{{ service_name_proxy }}"
+    spec_template_metadata_labels:
+      app: "{{ service_name_proxy }}"
+      service: "{{ service_name_proxy }}"
+    spec_template_spec_service_account_name: "{{ service_name_proxy }}"
+    containers:
+      ## Oauth-Proxy DC
+      - name: "{{ service_name_proxy }}"
+        image: "{{ prometheus_proxy_image }}:{{ prometheus_proxy_version }}"
+        ports:
+        - container_port: "{{ prometheus_proxy_container_port }}"
+          protocol: TCP
+        args:
+          - --provider=openshift
+          - --openshift-service-account={{ service_name_proxy }}
+          - --config=/{{ service_name_proxy }}/prometheus-oauth-proxy.yml
+          - --openshift-sar={"namespace":"{{ namespace }}","resource":"deploymentconfigs","name":"{{ service_name }}","verb":"update"}
+        volume_mounts:
+          - mount_path: '/etc/tls/private'
+            name: "{{ prometheus_proxy_tls_secret_name }}"
+          - mount_path: '/{{ service_name_proxy }}'
+            name: "{{ prometheus_proxy_configmap_oauth_name }}"
+      ## Prometheus DC
+      - name: "{{ service_name }}"
+        image: "{{ prometheus_image }}:{{ prometheus_version }}"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - container_port: "{{ prometheus_port }}"
+          protocol: TCP
+        volume_mounts:
+          - mount_path: "/{{ prometheus_configmap_rules_name }}"
+            name: "{{ prometheus_configmap_rules_name }}"
+          - mount_path: "/etc/{{ service_name }}"
+            name: "{{ prometheus_configmap_volume_name }}"
+          - mount_path: "/{{ service_name }}"
+            name: "{{ prometheus_data_volume_name }}"
+    volumes:
+      - name: "{{ prometheus_configmap_rules_name }}"
+        config_map:
+          name: "{{ prometheus_configmap_rules_name }}"
+      - name: "{{ prometheus_configmap_volume_name }}"
+        config_map:
+          defaultMode: 420
+          name: "{{ prometheus_configmap_name }}"
+      - name: "{{ prometheus_proxy_configmap_oauth_name }}"
+        config_map:
+          name: "{{ prometheus_proxy_configmap_oauth_name }}"
+      - name: "{{ prometheus_proxy_tls_secret_name }}"
+        secret:
+          secret_name: "{{ prometheus_proxy_tls_secret_name }}"
+      - name: "{{ prometheus_data_volume_name }}"
+        emptyDir: []
+  register: prometheus_dc
+  when: _apb_plan_id == 'ephemeral'
 
 - name: "[PROMETHEUS APB][OAUTH-PROXY] Set to {{ state }} the Prometheus Secret"
   k8s_v1_secret:

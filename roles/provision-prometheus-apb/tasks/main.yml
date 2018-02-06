@@ -1,11 +1,11 @@
 ---
 # - name: "[PROMETHEUS APB][MAIN] Entering Development mode" 
 #   include_tasks: prometheus.yml
-#   when: _apb_plan_id == "dev"
+#   when: _apb_plan_id == "development"
 # 
 # - name: "[PROMETHEUS APB][MAIN] Entering Production mode" 
 #   include_tasks: prod.yml
-#   when: _apb_plan_id == "prod"
+#   when: _apb_plan_id == "production"
 - name: "[PROMETHEUS APB][MAIN] Deploying Prometheus"
   include_tasks: prometheus.yml
   when: not PROMETHEUS_SECURED_DEPLOYMENT | bool
@@ -14,5 +14,5 @@
   include_tasks: prometheus-oauth.yml
   when: PROMETHEUS_SECURED_DEPLOYMENT | bool
 
-  #- name: "[PROMETHEUS APB][MAIN] Deploying Prometheus-AlertManager"
-  #  include_tasks: prometheus-alertmanager.yml
+- name: "[PROMETHEUS APB][MAIN] Deploying Prometheus-AlertManager"
+  include_tasks: prometheus-alertmanager.yml

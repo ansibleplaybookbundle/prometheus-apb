@@ -36,7 +36,7 @@
         slack.yml: "{{ lookup('file', 'alertmanager-templates/slack.tmpl') }}"
   register: prometheus_am_cm_templates
 
-- name: "[PROMETHEUS APB][ALERTMANAGER] Create Prometheus-AlertManager PVC"
+- name: "[PROMETHEUS APB][ALERTMANAGER] Create Prometheus-AlertManager PVC for Persistent plan"
   k8s_v1_persistent_volume_claim:
     name: "{{ prometheus_alertmanager_pvc_name }}"
     namespace: "{{ namespace }}"
@@ -49,8 +49,49 @@
       storage: "{{ PROMETHEUS_AM_STORAGE_SIZE }}Gi"
     state: "{{ state }}"
   register: prometheus_am_pvc
+  when: _apb_plan_id == 'persistent'
 
-- name: "[PROMETHEUS APB][ALERTMANAGER] Set to {{ state }} the Prometheus-AlertManager Deployment Config"
+- name: "[PROMETHEUS APB][ALERTMANAGER] Set to {{ state }} the Prometheus-AlertManager Deployment Config for Ephemeral plan"
+  openshift_v1_deployment_config:
+    name: "{{ service_name_am }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name_am }}"
+      service: "{{ service_name_am }}"
+    replicas: 1
+    selector:
+      app: "{{ service_name_am }}"
+      service: "{{ service_name_am }}"
+    spec_template_metadata_labels:
+      app: "{{ service_name_am }}"
+      service: "{{ service_name_am }}"
+    containers:
+      - env:
+        image: "{{ prometheus_alertmanager_image }}:{{ prometheus_alertmanager_version }}"
+        name: "{{ service_name_am }}"
+        ports:
+        - container_port: "{{ prometheus_alertmanager_port }}"
+          protocol: TCP
+        volume_mounts:
+          - mount_path: "/etc/alertmanager/"
+            name: "{{ prometheus_alertmanager_configmap_name }}"
+          - mount_path: "/etc/{{ service_name_am }}-templates"
+            name: "{{ prometheus_alertmanager_configmap_templates_name }}"
+          - mount_path: "/{{ service_name_am }}"
+            name: "{{ prometheus_alertmanager_data_volume_name }}"
+    volumes:
+      - name: "{{ prometheus_alertmanager_configmap_templates_name }}"
+        configMap:
+          name: "{{ prometheus_alertmanager_configmap_templates_name }}"
+      - name: "{{ prometheus_alertmanager_configmap_name }}"
+        config_map:
+          name: "{{ prometheus_alertmanager_configmap_name }}"
+      - name: "{{ prometheus_alertmanager_data_volume_name }}"
+        emptyDir: []
+  register: prometheus_am_dc
+  when: _apb_plan_id == 'ephemeral'
+
+- name: "[PROMETHEUS APB][ALERTMANAGER] Set to {{ state }} the Prometheus-AlertManager Deployment Config for Persistent plan"
   openshift_v1_deployment_config:
     name: "{{ service_name_am }}"
     namespace: "{{ namespace }}"
@@ -89,6 +130,7 @@
         persistent_volume_claim:
           claim_name: "{{ prometheus_alertmanager_pvc_name }}"
   register: prometheus_am_dc
+  when: _apb_plan_id == 'persistent'
 
 - name: "[PROMETHEUS APB][ALERTMANAGER] Set to {{ state }} the Prometheus-Alertmanager Service"
   k8s_v1_service:
