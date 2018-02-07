@@ -1,7 +1,17 @@
 ---
+- name: "[PROMETHEUS APB][TEST] Set scheme for Prometheus server"
+  set_fact:
+    scheme: 'http'
+  when: not PROMETHEUS_SECURED_DEPLOYMENT | bool
+
+- name: "[PROMETHEUS APB][TEST] Set scheme for Prometheus server"
+  set_fact:
+    scheme: 'https'
+  when: PROMETHEUS_SECURED_DEPLOYMENT | bool
+
 - name: "[PROMETHEUS APB][TEST] Check the Prometheus server is accesible"
   uri:
-    url: "https://{{ prometheus_route.route.spec.host }}"
+    url: "{{ scheme }}://{{ prometheus_route.route.spec.host }}"
     return_content: yes
     validate_certs: no
   register: webpage
