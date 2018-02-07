@@ -3,7 +3,8 @@
   gather_facts: false
   connection: local
   vars:
-    state: absent
+    state: 'absent'
+    action: 'deprovision'
   roles:
   - role: ansible.kubernetes-modules
     install_python_requirements: no

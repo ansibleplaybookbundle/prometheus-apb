@@ -129,7 +129,7 @@
         persistent_volume_claim:
           claim_name: "{{ prometheus_pvc_name }}"
   register: prometheus_dc
-when: _apb_plan_id == 'persistent'
+  when: _apb_plan_id == 'persistent'
 
 - name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} the prometheus Deployment Config for Ephemeral plan"
   openshift_v1_deployment_config:
