@@ -48,13 +48,15 @@ apb run --project prom-apb-test-01
 - Binding Prometheus <-> AlertManager
 - Authentication
 
+## Working on
+
+- APB Test
+- Deprovision
+
 ## To Do
 
 - AlertBuffer
-- Deprovision
 - Graphana
-- Node Exporter
-- APB Test
 
 ## References
 
