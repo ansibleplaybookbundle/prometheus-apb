@@ -16,3 +16,8 @@
   - name: "[PROMETHEUS APB][MAIN] Deprovision Prometheus"
     include_tasks: deprovision.yml
   when: action == 'deprovision'
+
+- block:
+  - name: "[PROMETHEUS APB][MAIN] Test Prometheus deployment"
+    include_tasks: test.yml
+  when: action == 'test'
