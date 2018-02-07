@@ -1,8 +1,8 @@
 global:
-  smtp_smarthost: \'{{ smtp_host | default('localhost') }}:{{ smtp_port | default('25') }}\'
-  smtp_from: \'{{ smtp_from | default('alertmanager@example.org') }}\'
-  smtp_auth_username: \'{{ smtp_auth_user | default('alertmanager') }}\'
-  smtp_auth_password: \'{{ smtp_auth_pass | default('password') }}\'
+  smtp_smarthost: \'{{ SMTP_HOST | default('localhost') }}:{{ SMTP_PORT | default('25') }}\'
+  smtp_from: \'{{ SMTP_FROM | default('alertmanager@example.org') }}\'
+  smtp_auth_username: \'{{ SMTP_AUTH_USER | default('alertmanager') }}\'
+  smtp_auth_password: \'{{ SMTP_AUTH_PASS | default('password') }}\'
 
 templates: 
 - '/etc/prometheus-alertmanager-templates/*.tmpl'
