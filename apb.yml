@@ -48,29 +48,33 @@ plans:
       - name: SMTP_HOST
         required: False
         type: string
+        default: 'localhost'
         pattern: "^[a-zA-Z0-9_.]*$"
         title: Hostname or IP for SMTP host
       - name: SMTP_PORT
         required: False
         type: number
+        default: 25
         title: Port number of SMTP server
       - name: SMTP_FROM
         required: False
         type: string
+        default: 'alertmanager@example.org'
         pattern: "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$"
         title: Email from field for Notifications
       - name: SMTP_AUTH_USER
         required: False
         type: string
+        default: 'alertmanager'
         pattern: "^[a-zA-Z0-9_.-]*$"
         title: Username to be authenticated on SMTP server
       - name: SMTP_AUTH_PASS
         required: False
         type: string
         pattern: "^[a-zA-Z0-9_.-]*$"
+        default: 'password'
         display_type: password
         title: Password to be authenticated on SMTP server
-
 
   - name: persistent
     description: Deployment of Prometheus for metrics and data view
@@ -103,25 +107,30 @@ plans:
       - name: SMTP_HOST
         required: False
         type: string
+        default: 'localhost'
         pattern: "^[a-zA-Z0-9_.]*$"
         title: Hostname or IP for SMTP host
       - name: SMTP_PORT
         required: False
         type: number
+        default: 25
         title: Port number of SMTP server
       - name: SMTP_FROM
         required: False
         type: string
+        default: 'alertmanager@example.org'
         pattern: "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$"
         title: Email from field for Notifications
       - name: SMTP_AUTH_USER
         required: False
         type: string
+        default: 'alertmanager'
         pattern: "^[a-zA-Z0-9_.-]*$"
         title: Username to be authenticated on SMTP server
       - name: SMTP_AUTH_PASS
         required: False
         type: string
         pattern: "^[a-zA-Z0-9_.-]*$"
+        default: 'password'
         display_type: password
         title: Password to be authenticated on SMTP server
