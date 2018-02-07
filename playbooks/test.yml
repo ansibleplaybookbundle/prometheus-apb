@@ -1,0 +1,41 @@
+---
+- name: "[PROMETHEUS APB][TEST] Test Prometheus APB"
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  vars:
+    state: present
+
+  roles:
+  - role: ansible.kubernetes-modules
+    install_python_requirements: no
+
+  post_tasks:
+  - name: "[PROMETHEUS APB][TEST] Pre-load variables for testing"
+    include_vars: test_vars.yaml
+
+  - name: "[PROMETHEUS APB][TEST] Create new project"
+    openshift_v1_project:
+      name: '{{ namespace }}'
+
+  - name: "[PROMETHEUS APB][TEST] Provision full Prometheus role"
+    include_role:
+      name: prometheus-apb
+      action: 'provision'
+      state: 'present'
+
+  - name: "[PROMETHEUS APB][TEST] Verify Prometheus role"
+    include_role:
+      name: prometheus-apb
+      action: 'test'
+
+  - name: "[PROMETHEUS APB][TEST] Deprovision Prometheus role"
+    include_role:
+      name: prometheus-apb
+      action: 'deprovision'
+      state: 'absent'
+
+  - name: "[PROMETHEUS APB][TEST] Delete test project"
+    openshift_v1_project:
+      name: '{{ namespace }}'
+      state: 'absent'
