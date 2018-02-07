@@ -296,7 +296,3 @@
         type: "{{ prometheus_secret_name }}"
         uri: "https://{{ prometheus_route.route.spec.host }}"
   register: prometheus_secret
-
-  #- name: "[PROMETHEUS APB][OAUTH-PROXY] Entering Production mode" 
-  #  include_tasks: prod.yml
-  #  when: _apb_plan_id == "prod"

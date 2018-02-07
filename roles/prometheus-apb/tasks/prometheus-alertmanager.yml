@@ -38,6 +38,7 @@
 
 - name: "[PROMETHEUS APB][ALERTMANAGER] Create Prometheus-AlertManager PVC for Persistent plan"
   k8s_v1_persistent_volume_claim:
+    state: "{{ state }}"
     name: "{{ prometheus_alertmanager_pvc_name }}"
     namespace: "{{ namespace }}"
     labels:
@@ -47,12 +48,12 @@
       - ReadWriteOnce
     resources_requests:
       storage: "{{ PROMETHEUS_AM_STORAGE_SIZE }}Gi"
-    state: "{{ state }}"
   register: prometheus_am_pvc
   when: _apb_plan_id == 'persistent'
 
 - name: "[PROMETHEUS APB][ALERTMANAGER] Set to {{ state }} the Prometheus-AlertManager Deployment Config for Ephemeral plan"
   openshift_v1_deployment_config:
+    state: "{{ state }}"
     name: "{{ service_name_am }}"
     namespace: "{{ namespace }}"
     labels:
@@ -93,6 +94,7 @@
 
 - name: "[PROMETHEUS APB][ALERTMANAGER] Set to {{ state }} the Prometheus-AlertManager Deployment Config for Persistent plan"
   openshift_v1_deployment_config:
+    state: "{{ state }}"
     name: "{{ service_name_am }}"
     namespace: "{{ namespace }}"
     labels:
@@ -134,6 +136,7 @@
 
 - name: "[PROMETHEUS APB][ALERTMANAGER] Set to {{ state }} the Prometheus-Alertmanager Service"
   k8s_v1_service:
+    state: "{{ state }}"
     name: "{{ service_name_am }}"
     namespace: "{{ namespace }}"
     labels:
@@ -146,5 +149,4 @@
     - name: "{{ service_name_am }}-{{ prometheus_alertmanager_port }}"
       port: "{{ prometheus_alertmanager_port }}"
       target_port: "{{ prometheus_alertmanager_port }}"
-    state: "{{ state }}"
   register: prometheus_am_svc
