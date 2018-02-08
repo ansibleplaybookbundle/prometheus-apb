@@ -1,5 +1,6 @@
 ---
-namespace: 'test_prometheus'
+namespace: 'test_ephemeral_prometheus'
+_apb_plan_id: 'ephemeral'
 PROMETHEUS_SECURED_DEPLOYMENT: True
 PROMETHEUS_STORAGE_SIZE: 1
 PROMETHEUS_AM_STORAGE_SIZE: 1

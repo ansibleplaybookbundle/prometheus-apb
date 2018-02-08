@@ -10,7 +10,7 @@
     state: "{{ state }}"
     name: "{{ service_name_proxy }}"
     namespace: "{{ namespace }}"
-    src: "{{ prometheus_sa_file.dest }}"
+    src: '/tmp/prometheus-oauth-service-account.yml'
   register: prometheus_sa
 
 - name: "[PROMETHEUS APB][OAUTH-PROXY] Recover secret name"

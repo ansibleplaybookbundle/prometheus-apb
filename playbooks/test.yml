@@ -9,33 +9,18 @@
   roles:
   - role: ansible.kubernetes-modules
     install_python_requirements: no
+    playbook_debug: true
 
   post_tasks:
-  - name: "[PROMETHEUS APB][TEST] Pre-load variables for testing"
-    include_vars: test_vars.yaml
+  - name: "[TEST][EPHEMERAL] Pre-load variables for testing"
+    include_vars: vars/vars_ephemeral.yml
 
-  - name: "[PROMETHEUS APB][TEST] Create new project"
-    openshift_v1_project:
-      name: '{{ namespace }}'
+  - name: "[TEST][{{ _apb_plan_id }}] Load testing tasks"
+    import_tasks: test_tasks.yml
 
-  - name: "[PROMETHEUS APB][TEST] Provision full Prometheus role"
-    include_role:
-      name: prometheus-apb
-      action: 'provision'
-      state: 'present'
+  - name: "[TEST][PERSISTENT] Pre-load variables for testing"
+    include_vars: vars/vars_persistent.yml
 
-  - name: "[PROMETHEUS APB][TEST] Verify Prometheus role"
-    include_role:
-      name: prometheus-apb
-      action: 'test'
+  - name: "[TEST][{{ _apb_plan_id }}] Load testing tasks"
+    import_tasks: test_tasks.yml
 
-  - name: "[PROMETHEUS APB][TEST] Deprovision Prometheus role"
-    include_role:
-      name: prometheus-apb
-      action: 'deprovision'
-      state: 'absent'
-
-  - name: "[PROMETHEUS APB][TEST] Delete test project"
-    openshift_v1_project:
-      name: '{{ namespace }}'
-      state: 'absent'

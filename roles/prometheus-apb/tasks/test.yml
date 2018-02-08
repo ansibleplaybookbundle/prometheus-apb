@@ -19,8 +19,8 @@
   delay: 20
   failed_when:
     - webpage.status == 403
-    - '"Log in with OpenShift" not in webpage.content'
-  until: '"Log in with OpenShift" in webpage.content'
+    - '"Sign in with an OpenShift account" not in webpage.content'
+  until: '"Sign in with an OpenShift account" in webpage.content'
 
   # - name: "[PROMETHEUS APB][TEST] Check the Graphana server is accesible"
   #   uri:
