@@ -14,7 +14,6 @@ Deploy Prometheus stack into your project of Openshift using APB
 
 ## How to try it?
 
-
 ### Requirements
 
 - Fedora APB rpm
@@ -47,17 +46,24 @@ apb run --project prom-apb-test-01
 - Prometheus Alert Manager
 - Binding Prometheus <-> AlertManager
 - Authentication
+- Deprovision
+- APB Test
 
 ## Working on
 
-- APB Test
-- Deprovision
+- Graphana
 
 ## To Do
 
 - AlertBuffer
-- Graphana
 
-## References
+# References
 
+- [APB Doc Repo](https://github.com/ansibleplaybookbundle/ansible-playbook-bundle)
+- [APB Base Repo](https://github.com/ansibleplaybookbundle/apb-base)
+- [Prometheus Webpage](https://prometheus.io/)
+- [Prometheus Documentation](https://prometheus.io/docs/introduction/overview/)
 
+# Author
+
+- **Freenode**: @jparrill
