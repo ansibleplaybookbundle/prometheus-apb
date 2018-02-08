@@ -64,6 +64,10 @@ apb run --project prom-apb-test-01
 - [Prometheus Webpage](https://prometheus.io/)
 - [Prometheus Documentation](https://prometheus.io/docs/introduction/overview/)
 
+# Docs
+
+- [APB Testing](docs/apb_tests.md)
+
 # Author
 
 - **Freenode**: @jparrill
