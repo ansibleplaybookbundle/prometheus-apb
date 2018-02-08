@@ -17,7 +17,7 @@ This action will go through your _playbooks_ folder searching a file called _tes
 ...
 ```
 
-With this data, our first step will be execute the base role to deploy the kubernetes modules inside of the container and the on the post_tasks all the actions related with our tests.
+With this data, our first step will be execute the base role to deploy the kubernetes modules inside of the container. After this step comes the post_tasks section with the actions related with our tests.
 
 My point of view here is, load the variables related with a concrete plan that must be tested and the execute a task file called "test_tasks" because the only that changes between executions is just the variables, then we will contain the same tasks for both plans.
 
