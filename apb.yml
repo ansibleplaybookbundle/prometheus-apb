@@ -1,0 +1,136 @@
+---
+_params: &_params
+  - name: PROMETHEUS_SECURED_DEPLOYMENT
+    required: True
+    default: True
+    type: bool
+    title: Prometheus Secured with Oauth-Proxy
+  - name: PROMETHEUS_STORAGE_SIZE
+    required: True
+    default: 10
+    type: number
+    title: Prometheus Storage Size (Gb)
+  - name: PROMETHEUS_AM_STORAGE_SIZE
+    required: True
+    default: 10
+    type: number
+    title: Prometheus Alert Manager Storage Size (Gb)
+
+
+version: 1.0
+name: prometheus-apb
+description: Deploy Prometheus on your Project
+bindable: False
+async: optional
+metadata:
+  displayName: Prometheus (APB)
+  imageUrl: https://avatars1.githubusercontent.com/u/3380462?s=200&v=4
+  providerDisplayName: "Red Hat, Inc."
+  longDescription: Prometheus is an open-source systems monitoring and alerting toolkit originally built at SoundCloud. Since its inception in 2012, many companies and organizations have adopted Prometheus, and the project has a very active developer and user community. It is now a standalone open source project and maintained independently of any company. To emphasize this, and to clarify the project's governance structure, Prometheus joined the Cloud Native Computing Foundation in 2016 as the second hosted project, after Kubernetes.
+  serviceName: prometheus
+plans:
+  - name: ephemeral
+    description: Deployment of Prometheus for metrics and data view
+    free: True
+    metadata:
+      displayName: Ephemeral
+      longDescription: This plan deploy the prometheus base stack, Prometheus with a sidecar Oauth-Proxy and also the AlertManager server base on Ephemeral storage. You could deploy the Addons like Graphana, AlertBuffer and Node-Exporter in the same project just changing to True the proper fields 
+      cost: €0.00
+    parameters:
+      ## Oauth
+      - name: PROMETHEUS_SECURED_DEPLOYMENT
+        required: True
+        default: True
+        type: bool
+        title: Deploy Prometheus with Oauth-Proxy sidecar
+
+      ## AlertManager Params
+      - name: SMTP_HOST
+        required: False
+        type: string
+        default: 'localhost'
+        pattern: "^[a-zA-Z0-9_.]*$"
+        title: Hostname or IP for SMTP host
+      - name: SMTP_PORT
+        required: False
+        type: number
+        default: 25
+        title: Port number of SMTP server
+      - name: SMTP_FROM
+        required: False
+        type: string
+        default: 'alertmanager@example.org'
+        pattern: "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$"
+        title: Email from field for Notifications
+      - name: SMTP_AUTH_USER
+        required: False
+        type: string
+        default: 'alertmanager'
+        pattern: "^[a-zA-Z0-9_.-]*$"
+        title: Username to be authenticated on SMTP server
+      - name: SMTP_AUTH_PASS
+        required: False
+        type: string
+        pattern: "^[a-zA-Z0-9_.-]*$"
+        default: 'password'
+        display_type: password
+        title: Password to be authenticated on SMTP server
+
+  - name: persistent
+    description: Deployment of Prometheus for metrics and data view
+    free: True
+    metadata:
+      displayName: Persistent
+      longDescription: This plan deploy the prometheus base stack, Prometheus with a sidecar Oauth-Proxy and also the AlertManager server base on Persistent storage. You could deploy the Addons like Graphana, AlertBuffer and Node-Exporter in the same project just changing to True the proper fields 
+      cost: €0.00
+    parameters:
+      ## Oauth
+      - name: PROMETHEUS_SECURED_DEPLOYMENT
+        required: True
+        default: True
+        type: bool
+        title: Prometheus Secured with Oauth-Proxy
+
+      ## PV's
+      - name: PROMETHEUS_STORAGE_SIZE
+        required: True
+        default: 10
+        type: number
+        title: Prometheus Storage Size (Gb)
+      - name: PROMETHEUS_AM_STORAGE_SIZE
+        required: True
+        default: 10
+        type: number
+        title: Prometheus Alert Manager Storage Size (Gb)
+
+      ## AlertManager Params
+      - name: SMTP_HOST
+        required: False
+        type: string
+        default: 'localhost'
+        pattern: "^[a-zA-Z0-9_.]*$"
+        title: Hostname or IP for SMTP host
+      - name: SMTP_PORT
+        required: False
+        type: number
+        default: 25
+        title: Port number of SMTP server
+      - name: SMTP_FROM
+        required: False
+        type: string
+        default: 'alertmanager@example.org'
+        pattern: "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$"
+        title: Email from field for Notifications
+      - name: SMTP_AUTH_USER
+        required: False
+        type: string
+        default: 'alertmanager'
+        pattern: "^[a-zA-Z0-9_.-]*$"
+        title: Username to be authenticated on SMTP server
+      - name: SMTP_AUTH_PASS
+        required: False
+        type: string
+        pattern: "^[a-zA-Z0-9_.-]*$"
+        default: 'password'
+        display_type: password
+        title: Password to be authenticated on SMTP server

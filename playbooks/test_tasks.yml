@@ -1,0 +1,28 @@
+---
+- name: "[TEST][{{ _apb_plan_id }}] Create new project"
+  openshift_v1_project:
+    name: '{{ namespace }}'
+
+- name: "[TEST][{{ _apb_plan_id }}] Provision full Prometheus role"
+  include_role:
+    name: prometheus-apb
+  vars:
+    action: 'provision'
+    state: 'present'
+
+- name: "[TEST][{{ _apb_plan_id }}] Verify Prometheus role"
+  include_role:
+    name: prometheus-apb
+  vars:
+    action: 'test'
+
+- name: "[TEST][{{ _apb_plan_id }}] Deprovision Prometheus role"
+  include_role:
+    name: prometheus-apb
+  vars:
+    action: 'deprovision'
+    state: 'absent'
+
+- name: "[TEST][{{ _apb_plan_id }}] Delete test project"
+  openshift_v1_project:
+    name: '{{ namespace }}'

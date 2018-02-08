@@ -1,0 +1,23 @@
+---
+- block:
+  - name: "[PROMETHEUS APB][MAIN] Deploying Prometheus"
+    include_tasks: prometheus.yml
+    when: not PROMETHEUS_SECURED_DEPLOYMENT | bool
+
+  - name: "[PROMETHEUS APB][MAIN] Deploying Prometheus-Oauth"
+    include_tasks: prometheus-oauth.yml
+    when: PROMETHEUS_SECURED_DEPLOYMENT | bool
+
+  - name: "[PROMETHEUS APB][MAIN] Deploying Prometheus-AlertManager"
+    include_tasks: prometheus-alertmanager.yml
+  when: action == 'provision'
+
+- block:
+  - name: "[PROMETHEUS APB][MAIN] Deprovision Prometheus"
+    include_tasks: deprovision.yml
+  when: action == 'deprovision'
+
+- block:
+  - name: "[PROMETHEUS APB][MAIN] Test Prometheus deployment"
+    include_tasks: test.yml
+  when: action == 'test'
