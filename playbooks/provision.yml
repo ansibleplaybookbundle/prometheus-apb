@@ -1,4 +1,5 @@
-- name: "[PROMETHEUS APB][TEST] Provision application Prometheus APB"
+---
+- name: "[PROMETHEUS APB][PROVISION] Provision application Prometheus APB"
   hosts: localhost
   gather_facts: false
   connection: local
