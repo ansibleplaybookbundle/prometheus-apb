@@ -89,6 +89,11 @@
           name: "{{ prometheus_alertmanager_configmap_name }}"
       - name: "{{ prometheus_alertmanager_data_volume_name }}"
         emptyDir: []
+    restart_policy: Always
+    termination_grace_period_seconds: 30
+    test: false
+    triggers:
+      - type: ConfigChange
   register: prometheus_am_dc
   when: _apb_plan_id == 'ephemeral'
 
@@ -131,6 +136,11 @@
       - name: "{{ prometheus_alertmanager_data_volume_name }}"
         persistent_volume_claim:
           claim_name: "{{ prometheus_alertmanager_pvc_name }}"
+    restart_policy: Always
+    termination_grace_period_seconds: 30
+    test: false
+    triggers:
+      - type: ConfigChange
   register: prometheus_am_dc
   when: _apb_plan_id == 'persistent'
 

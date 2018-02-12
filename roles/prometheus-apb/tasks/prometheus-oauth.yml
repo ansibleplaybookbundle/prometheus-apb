@@ -208,6 +208,11 @@
       - name: "{{ prometheus_proxy_tls_secret_name }}"
         secret:
           secret_name: "{{ prometheus_proxy_tls_secret_name }}"
+    restart_policy: Always
+    termination_grace_period_seconds: 30
+    test: false
+    triggers:
+      - type: ConfigChange
   register: prometheus_dc
   when: _apb_plan_id == 'persistent'
 
@@ -274,6 +279,11 @@
           secret_name: "{{ prometheus_proxy_tls_secret_name }}"
       - name: "{{ prometheus_data_volume_name }}"
         emptyDir: []
+    restart_policy: Always
+    termination_grace_period_seconds: 30
+    test: false
+    triggers:
+      - type: ConfigChange
   register: prometheus_dc
   when: _apb_plan_id == 'ephemeral'
 
