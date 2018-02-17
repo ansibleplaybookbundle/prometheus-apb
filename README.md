@@ -56,6 +56,8 @@ apb run --project prom-apb-test-01
 ## To Do
 
 - AlertBuffer
+- Packaging
+- Add ImageStream to manage tags easily
 
 # References
 
