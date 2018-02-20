@@ -5,7 +5,7 @@
   connection: local
   vars:
     state: 'absent'
-    action: 'deprovision'
+    mode: 'deprovision'
   roles:
   - role: ansible.kubernetes-modules
     install_python_requirements: no

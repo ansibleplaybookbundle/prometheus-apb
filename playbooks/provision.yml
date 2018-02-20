@@ -5,7 +5,7 @@
   connection: local
   vars:
     state: 'present'
-    action: 'provision'
+    mode: 'provision'
   roles:
   - role: ansible.kubernetes-modules
     install_python_requirements: no

@@ -1,29 +1,29 @@
 ---
-- name: '[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} the Prometheus ServiceAccount'
+- name: '[PROMETHEUS][{{ mode | upper }}] Set to {{ state }} the Prometheus ServiceAccount'
   k8s_v1_service_account:
     state: "{{ state }}"
     name: "{{ service_name }}"
     namespace: "{{ namespace }}"
   register: prometheus_sa
 
-- name: "[PROMETHEUS APB][PROMETHEUS] Recover secret name"
+- name: "[PROMETHEUS][{{ mode | upper }}] Recover secret name"
   set_fact:
     prometheus_sa_token_name: "{{ item.name }}"
   with_list: "{{ prometheus_sa.service_account.secrets }}"
   when: "'prometheus-token' in item.name"
 
-- name: "[PROMETHEUS APB][PROMETHEUS] Recovering Service Account token"
+- name: "[PROMETHEUS][{{ mode | upper }}] Recovering Service Account token"
   k8s_v1_secret:
     state: "{{ state }}"
     name: "{{ prometheus_sa_token_name }}"
     namespace: "{{ namespace }}"
   register: prometheus_sa_token
 
-- name: "[PROMETHEUS APB][PROMETHEUS] Creating a fact with the secret token of Service Account"
+- name: "[PROMETHEUS][{{ mode | upper }}] Creating a fact with the secret token of Service Account"
   set_fact:
     prometheus_sa_token: "{{ prometheus_sa_token.secret.data.token | b64decode }}"
 
-- name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} RoleBinding for Service Account"
+- name: "[PROMETHEUS][{{ mode | upper }}] Set to {{ state }} RoleBinding for Service Account"
   k8s_v1beta1_role_binding:
     state: "{{ state }}"
     name: "{{ service_name }}-view"
@@ -35,7 +35,22 @@
       name: "{{ service_name }}"
       namespace: "{{ namespace }}"
 
-- name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} Openshift ConfigMap resource"
+- name: "[PROMETHEUS][{{ mode | upper }}] Create ImageStream for Prometheus image"
+  openshift_v1_image_stream:
+    state: "{{ state }}"
+    name: "{{ service_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      name: "{{ service_name }}"
+    lookup_policy_local: False 
+    tags:
+      - name: "{{ prometheus_version }}"
+    docker_image_repository: "{{ prometheus_image }}"
+  register: prometheus_is
+
+
+- name: "[PROMETHEUS][{{ mode | upper }}] Set to {{ state }} Openshift ConfigMap resource"
   k8s_v1_config_map:
     state: "{{ state }}"
     name: "{{ prometheus_configmap_name }}"
@@ -53,7 +68,7 @@
         prometheus.yml: "{{ lookup('template', 'prometheus-config-map.yml.j2') }}"
   register: prometheus_cm
 
-- name: "[PROMETHEUS APB][ALERTMANAGER] Set to {{ state }} Openshift ConfigMap resource with Prometheus Rules"
+- name: "[PROMETHEUS][{{ mode | upper }}] Set to {{ state }} Openshift ConfigMap resource with Prometheus Rules"
   k8s_v1_config_map:
     state: "{{ state }}"
     name: "{{ prometheus_configmap_rules_name }}"
@@ -72,7 +87,7 @@
         prometheus.rules.yaml: "{{ lookup('file', 'prometheus-rules/prometheus.rules.yaml') }}"
   register: prometheus_cm_rules
 
-- name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} Prometheus PVC for Persistent plan"
+- name: "[PROMETHEUS][{{ mode | upper }}] Set to {{ state }} Prometheus PVC for Persistent plan"
   k8s_v1_persistent_volume_claim:
     state: "{{ state }}"
     name: "{{ prometheus_pvc_name }}"
@@ -87,7 +102,7 @@
   register: prometheus_pvc
   when: _apb_plan_id == 'persistent'
 
-- name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} the prometheus Deployment Config for Persistent plan"
+- name: "[PROMETHEUS][{{ mode | upper }}] Set to {{ state }} the prometheus Deployment Config for Persistent plan"
   openshift_v1_deployment_config:
     state: "{{ state }}"
     name: "{{ service_name }}"
@@ -136,7 +151,7 @@
   register: prometheus_dc
   when: _apb_plan_id == 'persistent'
 
-- name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} the prometheus Deployment Config for Ephemeral plan"
+- name: "[PROMETHEUS][{{ mode | upper }}] Set to {{ state }} the prometheus Deployment Config for Ephemeral plan"
   openshift_v1_deployment_config:
     state: "{{ state }}"
     name: "{{ service_name }}"
@@ -184,7 +199,7 @@
   register: prometheus_dc
   when: _apb_plan_id == 'ephemeral'
 
-- name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} the Prometheus Service"
+- name: "[PROMETHEUS][{{ mode | upper }}] Set to {{ state }} the Prometheus Service"
   k8s_v1_service:
     state: "{{ state }}"
     name: "{{ service_name }}"
@@ -201,7 +216,7 @@
       target_port: "{{ prometheus_port }}"
   register: prometheus_svc
 
-- name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} the Prometheus Route"
+- name: "[PROMETHEUS][{{ mode | upper }}] Set to {{ state }} the Prometheus Route"
   openshift_v1_route:
     state: "{{ state }}"
     name: "{{ service_name }}"
@@ -213,7 +228,7 @@
     port_target_port: "{{ service_name }}-{{ prometheus_port }}"
   register: prometheus_route
 
-- name: "[PROMETHEUS APB][PROMETHEUS] Set to {{ state }} the Prometheus Secret"
+- name: "[PROMETHEUS][{{ mode | upper }}] Set to {{ state }} the Prometheus Secret"
   k8s_v1_secret:
     state: "{{ state }}"
     name: "{{ prometheus_secret_name }}"

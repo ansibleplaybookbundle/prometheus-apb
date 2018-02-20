@@ -1,4 +1,12 @@
 ---
+- name: "[PROMETHEUS-APB][MAIN] MongoDB"
+  debug:
+    msg:
+      - "Entering on Main:"
+      - "  Mode: {{ mode }}"
+      - "  State: {{ state | default('undefined') }}"
+      - "  Plan: {{ _apb_plan_id }}"
+
 - block:
   - name: "[PROMETHEUS APB][MAIN] Deploying Prometheus"
     include_tasks: prometheus.yml
@@ -10,14 +18,21 @@
 
   - name: "[PROMETHEUS APB][MAIN] Deploying Prometheus-AlertManager"
     include_tasks: prometheus-alertmanager.yml
-  when: action == 'provision'
+  when: mode == 'provision'
 
 - block:
   - name: "[PROMETHEUS APB][MAIN] Deprovision Prometheus"
     include_tasks: deprovision.yml
-  when: action == 'deprovision'
+  when: mode == 'deprovision'
 
 - block:
   - name: "[PROMETHEUS APB][MAIN] Test Prometheus deployment"
     include_tasks: test.yml
-  when: action == 'test'
+  when: mode == 'test'
+
+  # Recover Tests Results
+- block:
+  - name: "[PROMETHEUS APB][FINISH] Recover Tests Results"
+    include_tasks: recover_tests.yml
+  when: mode == 'finish_tests'
+

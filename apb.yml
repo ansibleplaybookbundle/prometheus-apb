@@ -1,23 +1,5 @@
 ---
-_params: &_params
-  - name: PROMETHEUS_SECURED_DEPLOYMENT
-    required: True
-    default: True
-    type: bool
-    title: Prometheus Secured with Oauth-Proxy
-  - name: PROMETHEUS_STORAGE_SIZE
-    required: True
-    default: 10
-    type: number
-    title: Prometheus Storage Size (Gb)
-  - name: PROMETHEUS_AM_STORAGE_SIZE
-    required: True
-    default: 10
-    type: number
-    title: Prometheus Alert Manager Storage Size (Gb)
-
-
-version: 1.0
+version: 1.1
 name: prometheus-apb
 description: Deploy Prometheus on your Project
 bindable: False
@@ -43,6 +25,7 @@ plans:
         default: True
         type: bool
         title: Deploy Prometheus with Oauth-Proxy sidecar
+        display_group: General Config
 
       ## AlertManager Params
       - name: SMTP_HOST
@@ -51,23 +34,27 @@ plans:
         default: 'localhost'
         pattern: "^[a-zA-Z0-9_.]*$"
         title: Hostname or IP for SMTP host
+        display_group: AlertManager Config
       - name: SMTP_PORT
         required: False
         type: number
         default: 25
         title: Port number of SMTP server
+        display_group: AlertManager Config
       - name: SMTP_FROM
         required: False
         type: string
         default: 'alertmanager@example.org'
         pattern: "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$"
         title: Email from field for Notifications
+        display_group: AlertManager Config
       - name: SMTP_AUTH_USER
         required: False
         type: string
         default: 'alertmanager'
         pattern: "^[a-zA-Z0-9_.-]*$"
         title: Username to be authenticated on SMTP server
+        display_group: AlertManager Config
       - name: SMTP_AUTH_PASS
         required: False
         type: string
@@ -75,6 +62,7 @@ plans:
         default: 'password'
         display_type: password
         title: Password to be authenticated on SMTP server
+        display_group: AlertManager Config
 
   - name: persistent
     description: Deployment of Prometheus for metrics and data view
@@ -90,6 +78,7 @@ plans:
         default: True
         type: bool
         title: Prometheus Secured with Oauth-Proxy
+        display_group: General Config
 
       ## PV's
       - name: PROMETHEUS_STORAGE_SIZE
@@ -97,11 +86,13 @@ plans:
         default: 10
         type: number
         title: Prometheus Storage Size (Gb)
+        display_group: Container Specs
       - name: PROMETHEUS_AM_STORAGE_SIZE
         required: True
         default: 10
         type: number
         title: Prometheus Alert Manager Storage Size (Gb)
+        display_group: Container Specs
 
       ## AlertManager Params
       - name: SMTP_HOST
@@ -110,23 +101,27 @@ plans:
         default: 'localhost'
         pattern: "^[a-zA-Z0-9_.]*$"
         title: Hostname or IP for SMTP host
+        display_group: AlertManager Config
       - name: SMTP_PORT
         required: False
         type: number
         default: 25
         title: Port number of SMTP server
+        display_group: AlertManager Config
       - name: SMTP_FROM
         required: False
         type: string
         default: 'alertmanager@example.org'
         pattern: "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$"
         title: Email from field for Notifications
+        display_group: AlertManager Config
       - name: SMTP_AUTH_USER
         required: False
         type: string
         default: 'alertmanager'
         pattern: "^[a-zA-Z0-9_.-]*$"
         title: Username to be authenticated on SMTP server
+        display_group: AlertManager Config
       - name: SMTP_AUTH_PASS
         required: False
         type: string
@@ -134,3 +129,4 @@ plans:
         default: 'password'
         display_type: password
         title: Password to be authenticated on SMTP server
+        display_group: AlertManager Config

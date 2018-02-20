@@ -1,37 +1,28 @@
 ---
-- name: "[PROMETHEUS APB][TEST] Set scheme for Prometheus server"
+- name: "[PROMETHEUS APB][{{ mode | upper }}] Set Non-Secured scheme for Prometheus server"
   set_fact:
     scheme: 'http'
   when: not PROMETHEUS_SECURED_DEPLOYMENT | bool
 
-- name: "[PROMETHEUS APB][TEST] Set scheme for Prometheus server"
+- name: "[PROMETHEUS APB][{{ mode | upper }}] Set Secured scheme for Prometheus server"
   set_fact:
     scheme: 'https'
   when: PROMETHEUS_SECURED_DEPLOYMENT | bool
 
-- name: "[PROMETHEUS APB][TEST] Check the Prometheus server is accesible"
+- name: "[PROMETHEUS APB][{{ mode | upper }}] Check the Prometheus server is accesible"
   uri:
-    url: "{{ scheme }}://{{ prometheus_route.route.spec.host }}"
+    url: "{{ scheme }}://{{ prometheus_svc.service.spec.cluster_ip }}"
     return_content: yes
     validate_certs: no
   register: webpage
   retries: 10
   delay: 20
-  failed_when:
-    - webpage.status == 403
-    - '"Sign in with an OpenShift account" not in webpage.content'
+  failed_when: webpage.status == 404
   until: '"Sign in with an OpenShift account" in webpage.content'
 
-  # - name: "[PROMETHEUS APB][TEST] Check the Graphana server is accesible"
-  #   uri:
-  #     url: "https://{{ grafana_route.route.spec.host }}"
-  #     return_content: yes
-  #     validate_certs: no
-  #   register: webpage
-  #   retries: 10
-  #   delay: 20
-  #   failed_when:
-  #     - webpage.status == 403
-  #     - '"Log in with OpenShift" not in webpage.content'
-  #   until: '"Log in with OpenShift" in webpage.content'
+- name: "[PROMETHEUS APB][{{ mode | upper }}] Saving Tests results on error"
+  asb_save_test_result:
+    fail: True
+    msg: "Test Failed. Error connecting with Prometheus Server. Data - {{ webpage }}"
+  when: webpage.failed | bool
 
