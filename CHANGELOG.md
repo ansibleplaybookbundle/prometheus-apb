@@ -6,9 +6,10 @@ Prometheus APB Changelog
 ### Added
 - Tests covering Standalone Epehemeral and Persistent plan
 - Added Flows svg for every plan on docs
-- Enhanced Documentation
+- Added Callback compatibility
 
 ### Changed
+- Enhanced Documentation
 
 ## [1.0] - 2018-02-19
 ### Added
