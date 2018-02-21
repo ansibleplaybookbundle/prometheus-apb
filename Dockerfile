@@ -92,45 +92,9 @@ OV8uLV0qJCIKICAgICAgICBkZWZhdWx0OiAncGFzc3dvcmQnCiAgICAgICAgZGlzcGxheV90eXBl\
 OiBwYXNzd29yZAogICAgICAgIHRpdGxlOiBQYXNzd29yZCB0byBiZSBhdXRoZW50aWNhdGVkIG9u\
 IFNNVFAgc2VydmVyCiAgICAgICAgZGlzcGxheV9ncm91cDogQWxlcnRNYW5hZ2VyIENvbmZpZwo="
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 COPY playbooks /opt/apb/actions
 COPY roles /opt/ansible/roles
+COPY plugins /opt/ansible/plugins
+COPY ansible.cfg /etc/ansible/
 RUN chmod -R g=u /opt/{ansible,apb}
 USER apb
