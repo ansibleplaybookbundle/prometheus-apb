@@ -4,11 +4,11 @@
   gather_facts: false
   connection: local
   vars:
-    state: present
-
+    finish_tests: False
   roles:
   - role: ansible.kubernetes-modules
     install_python_requirements: no
+  - role: ansibleplaybookbundle.asb-modules
     playbook_debug: true
 
   post_tasks:
@@ -24,3 +24,7 @@
   - name: "[TEST][{{ _apb_plan_id }}] Load testing tasks"
     import_tasks: test_tasks.yml
 
+  - name: "[TEST][{{ _apb_plan_id | upper }}] Recover tests results"
+    include_tasks: test_tasks.yml
+    vars:
+      finish_tests: True

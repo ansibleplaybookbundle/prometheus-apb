@@ -1,28 +1,37 @@
 ---
-- name: "[TEST][{{ _apb_plan_id }}] Create new project"
-  openshift_v1_project:
-    name: '{{ namespace }}'
+- block:
+  - name: "[{{ mode | upper }}][{{ _apb_plan_id }}] Create new project"
+    openshift_v1_project:
+      name: '{{ namespace }}'
 
-- name: "[TEST][{{ _apb_plan_id }}] Provision full Prometheus role"
+  - name: "[{{ mode | upper }}][{{ _apb_plan_id }}] Provision full Prometheus role"
+    include_role:
+      name: prometheus-apb
+    vars:
+      mode: 'provision'
+      state: 'present'
+
+  - name: "[{{ mode | upper }}][{{ _apb_plan_id }}] Verify Prometheus role"
+    include_role:
+      name: prometheus-apb
+    vars:
+      mode: 'test'
+
+  - name: "[{{ mode | upper }}][{{ _apb_plan_id }}] Deprovision Prometheus role"
+    include_role:
+      name: prometheus-apb
+    vars:
+      mode: 'deprovision'
+      state: 'absent'
+
+  - name: "[{{ mode | upper }}][{{ _apb_plan_id }}] Delete test project"
+    openshift_v1_project:
+      name: '{{ namespace }}'
+  when: not finish_tests | bool
+
+- name: "[{{ mode | upper }}][{{ _apb_plan_id }}] Retrieving Tests Results"
   include_role:
     name: prometheus-apb
   vars:
-    action: 'provision'
-    state: 'present'
-
-- name: "[TEST][{{ _apb_plan_id }}] Verify Prometheus role"
-  include_role:
-    name: prometheus-apb
-  vars:
-    action: 'test'
-
-- name: "[TEST][{{ _apb_plan_id }}] Deprovision Prometheus role"
-  include_role:
-    name: prometheus-apb
-  vars:
-    action: 'deprovision'
-    state: 'absent'
-
-- name: "[TEST][{{ _apb_plan_id }}] Delete test project"
-  openshift_v1_project:
-    name: '{{ namespace }}'
+    mode: 'finish_tests'
+  when: finish_tests | bool

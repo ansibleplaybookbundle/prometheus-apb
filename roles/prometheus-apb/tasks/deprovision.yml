@@ -1,5 +1,5 @@
 ---
-- name: '[PROMETHEUS APB][DEPROVISION] Deprovision Prometheus ServiceAccount'
+- name: '[PROMETHEUS APB][{{ mode | upper }}] Deprovision Prometheus ServiceAccount'
   k8s_v1_service_account:
     state: "{{ state }}"
     name: "{{ item }}"
@@ -9,7 +9,17 @@
     - "{{ service_name_proxy }}"
     - "{{ service_name_am }}"
 
-- name: "[PROMETHEUS APB][DEPROVISION] Deprovision RoleBinding Service Account"
+- name: "[PROMETHEUS APB][{{ mode | upper }}] Deprovision ImageStream for Prometheus image"
+  openshift_v1_image_stream:
+    state: "{{ state }}"
+    name: "{{ item }}"
+    namespace: "{{ namespace }}"
+  with_items:
+    - "{{ service_name }}"
+    - "{{ service_name_proxy }}"
+    - "{{ service_name_am }}"
+
+- name: "[PROMETHEUS APB][{{ mode | upper }}] Deprovision RoleBinding Service Account"
   k8s_v1beta1_role_binding:
     state: "{{ state }}"
     name: "{{ item }}-view"
@@ -18,7 +28,7 @@
     - "{{ service_name }}"
     - "{{ service_name_proxy }}"
 
-- name: "[PROMETHEUS APB][DEPROVISION] Deprovision Openshift ConfigMap resources"
+- name: "[PROMETHEUS APB][{{ mode | upper }}] Deprovision Openshift ConfigMap resources"
   k8s_v1_config_map:
     state: "{{ state }}"
     name: "{{ item }}"
@@ -30,7 +40,7 @@
     - "{{ prometheus_alertmanager_configmap_templates_name }}" 
     - "{{ prometheus_proxy_configmap_oauth_name }}" 
 
-- name: "[PROMETHEUS APB][DEPROVISION] Deprovision Prometheus PVC for Persistent plan"
+- name: "[PROMETHEUS APB][{{ mode | upper }}] Deprovision Prometheus PVC for Persistent plan"
   k8s_v1_persistent_volume_claim:
     state: "{{ state }}"
     name: "{{ item }}" 
@@ -39,7 +49,7 @@
     - "{{ prometheus_pvc_name }}"
     - "{{ prometheus_alertmanager_pvc_name }}"
 
-- name: "[PROMETHEUS APB][DEPROVISION] Deprovision Prometheus Deployment Config"
+- name: "[PROMETHEUS APB][{{ mode | upper }}] Deprovision Prometheus Deployment Config"
   openshift_v1_deployment_config:
     state: "{{ state }}"
     name: "{{ item }}"
@@ -49,7 +59,7 @@
     - "{{ service_name_proxy }}"
     - "{{ service_name_am }}"
 
-- name: "[PROMETHEUS APB][DEPROVISION] Deprovision Prometheus Service"
+- name: "[PROMETHEUS APB][{{ mode | upper }}] Deprovision Prometheus Service"
   k8s_v1_service:
     state: "{{ state }}"
     name: "{{ item }}"
@@ -59,7 +69,7 @@
     - "{{ service_name_proxy }}"
     - "{{ service_name_am }}"
 
-- name: "[PROMETHEUS APB][DEPROVISION] Deprovision Prometheus Route"
+- name: "[PROMETHEUS APB][{{ mode | upper }}] Deprovision Prometheus Route"
   openshift_v1_route:
     state: "{{ state }}"
     name: "{{ item }}"
@@ -68,7 +78,7 @@
     - "{{ service_name }}"
     - "{{ service_name_proxy }}"
 
-- name: "[PROMETHEUS APB][DEPROVISION] Deprovision Prometheus Secret"
+- name: "[PROMETHEUS APB][{{ mode | upper }}] Deprovision Prometheus Secret"
   k8s_v1_secret:
     state: "{{ state }}"
     name: "{{ item }}" 

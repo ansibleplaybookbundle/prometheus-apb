@@ -1,7 +1,6 @@
 ---
 service_name: 'prometheus'
 app_name: "{{ service_name }}-apb"
-state: present
 
 # Prometheus
 prometheus_image: "registry.access.redhat.com/openshift3/prometheus"
