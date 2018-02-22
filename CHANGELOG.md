@@ -2,6 +2,10 @@
 
 Prometheus APB Changelog
 
+## [1.2] - 2018-02-22
+### Added
+- Added CI/CD tests on TravisCI
+
 ## [1.1] - 2018-02-21 
 ### Added
 - Tests covering Standalone Epehemeral and Persistent plan
