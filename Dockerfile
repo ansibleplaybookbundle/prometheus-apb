@@ -93,6 +93,7 @@ OiBwYXNzd29yZAogICAgICAgIHRpdGxlOiBQYXNzd29yZCB0byBiZSBhdXRoZW50aWNhdGVkIG9u\
 IFNNVFAgc2VydmVyCiAgICAgICAgZGlzcGxheV9ncm91cDogQWxlcnRNYW5hZ2VyIENvbmZpZwo="
 
 
+
 COPY playbooks /opt/apb/actions
 COPY roles /opt/ansible/roles
 COPY plugins /opt/ansible/plugins
