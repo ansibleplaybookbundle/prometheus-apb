@@ -47,8 +47,10 @@ jobs:
     python: '2.7'
     script:
       # Check if committed APB spec matches Dockerfile
+      - export DOCKERFILE_MD5_PRE=$(cat Dockerfile | md5sum | awk '{print $1}')
       - apb build
-      - if ! git diff --ignore-space-at-eol --exit-code; then echo "Committed APB spec differs from built apb.yml spec"; exit 1; fi
+      - export DOCKERFILE_MD5_POS=$(head -n -1 Dockerfile | md5sum | awk '{print $1}')
+      - if [[ "${DOCKERFILE_MD5_PRE}" != "${DOCKERFILE_MD5_POS}" ]]; then echo "Committed APB spec differs from built apb.yml spec"; exit 1; fi
 
 # Test Stage
 script:
