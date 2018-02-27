@@ -1,8 +1,10 @@
 # Prometheus APB
 
-![img](docs/img/prometheus-logo.png)
+[![Build Status](https://travis-ci.org/RHsyseng/prometheus-apb.svg?branch=master)](https://travis-ci.org/RHsyseng/prometheus-apb)
 
 ## Description
+
+![img](docs/img/prometheus-logo.png)
 
 Deploy Prometheus stack into your project of Openshift using APB
 

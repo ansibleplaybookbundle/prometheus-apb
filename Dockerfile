@@ -1,8 +1,15 @@
 FROM ansibleplaybookbundle/apb-base
 
-LABEL "com.redhat.apb.version"="1.1.0"
+COPY playbooks /opt/apb/actions
+COPY roles /opt/ansible/roles
+COPY plugins /opt/ansible/plugins
+COPY ansible.cfg /etc/ansible/
+RUN chmod -R g=u /opt/{ansible,apb}
+USER apb
+
+LABEL "com.redhat.apb.version"="1.2.0"
 LABEL "com.redhat.apb.spec"=\
-"LS0tCnZlcnNpb246IDEuMQpuYW1lOiBwcm9tZXRoZXVzLWFwYgpkZXNjcmlwdGlvbjogRGVwbG95\
+"LS0tCnZlcnNpb246IDEuMgpuYW1lOiBwcm9tZXRoZXVzLWFwYgpkZXNjcmlwdGlvbjogRGVwbG95\
 IFByb21ldGhldXMgb24geW91ciBQcm9qZWN0CmJpbmRhYmxlOiBGYWxzZQphc3luYzogb3B0aW9u\
 YWwKbWV0YWRhdGE6CiAgZGlzcGxheU5hbWU6IFByb21ldGhldXMgKEFQQikKICBpbWFnZVVybDog\
 aHR0cHM6Ly9hdmF0YXJzMS5naXRodWJ1c2VyY29udGVudC5jb20vdS8zMzgwNDYyP3M9MjAwJnY9\
@@ -92,9 +99,3 @@ OV8uLV0qJCIKICAgICAgICBkZWZhdWx0OiAncGFzc3dvcmQnCiAgICAgICAgZGlzcGxheV90eXBl\
 OiBwYXNzd29yZAogICAgICAgIHRpdGxlOiBQYXNzd29yZCB0byBiZSBhdXRoZW50aWNhdGVkIG9u\
 IFNNVFAgc2VydmVyCiAgICAgICAgZGlzcGxheV9ncm91cDogQWxlcnRNYW5hZ2VyIENvbmZpZwo="
 
-COPY playbooks /opt/apb/actions
-COPY roles /opt/ansible/roles
-COPY plugins /opt/ansible/plugins
-COPY ansible.cfg /etc/ansible/
-RUN chmod -R g=u /opt/{ansible,apb}
-USER apb

@@ -2,3 +2,4 @@
 - name: "[PROMETHEUS APB][{{ mode | upper }}] Saving Tests results on success"
   asb_save_test_result:
     msg: 'Test Passed! \o/'
+  when: travis is undefined
