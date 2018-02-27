@@ -4,8 +4,6 @@
     src: 'prometheus-oauth-service-account.yml.j2'
     dest: '/tmp/prometheus-oauth-service-account.yml'
   register: prometheus_sa_file
-  with_items:
-    - { name: "{{ service_name_proxy }}" }
 
 - name: "[PROMETHEUS-OAUTH][{{ mode | upper }}] Set to {{ state }} Prometheus ServiceAccount"
   k8s_v1_service_account:
@@ -95,6 +93,8 @@
         namespace: "{{ namespace }}"
       data:
         prometheus-oauth-proxy.yml: "{{ lookup('template', 'prometheus-oauth-proxy-config-map.yml.j2') }}"
+  with_items:
+    - { proxy_container_port: "{{ prometheus_proxy_container_port }}", upstream_port: "{{ prometheus_port }}" }
   register: prometheus_cm
 
 - name: "[PROMETHEUS-OAUTH][{{ mode | upper }}] Set to {{ state }} Openshift ConfigMap resource with Prometheus Rules"

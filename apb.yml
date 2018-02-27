@@ -102,7 +102,7 @@ plans:
         type: number
         title: Prometheus Alert Manager Storage Size (Gb)
         display_group: Container Specs
-      - name: PROMETHEUS_GRAF_STORAGE_SIZE
+      - name: PROMETHEUS_GRAFANA_STORAGE_SIZE
         required: True
         default: 10
         type: number
