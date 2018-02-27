@@ -1,0 +1,213 @@
+---
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to  ImageStream for Grafana image"
+  openshift_v1_image_stream:
+    state: "{{ state }}"
+    name: "{{ service_name_graf }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      name: "{{ service_name_graf }}"
+    lookup_policy_local: False 
+    tags:
+      - name: "{{ prometheus_grafana_version }}"
+    docker_image_repository: "{{ prometheus_grafana_image }}"
+  register: prometheus_grafana_is
+
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} ConfigMap resource"
+  k8s_v1_config_map:
+    state: "{{ state }}"
+    name: "{{ prometheus_configmap_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    resource_definition:
+      kind: 'ConfigMap'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_configmap_name }}"
+        namespace: "{{ namespace }}"
+      data:
+        prometheus.yml: "{{ lookup('template', 'prometheus-config-map.yml.j2') }}"
+  register: prometheus_cm
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} Openshift ConfigMap resource with Prometheus Rules"
+  k8s_v1_config_map:
+    state: "{{ state }}"
+    name: "{{ prometheus_configmap_rules_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    resource_definition:
+      kind: 'ConfigMap'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_configmap_rules_name }}"
+        namespace: "{{ namespace }}"
+      data:
+        general.rules.yaml: "{{ lookup('file', 'prometheus-rules/general.rules.yaml') }}"
+        prometheus.rules.yaml: "{{ lookup('file', 'prometheus-rules/prometheus.rules.yaml') }}"
+  register: prometheus_cm_rules
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} Prometheus PVC for Persistent plan"
+  k8s_v1_persistent_volume_claim:
+    state: "{{ state }}"
+    name: "{{ prometheus_pvc_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    access_modes:
+      - ReadWriteOnce
+    resources_requests:
+      storage: "{{ PROMETHEUS_STORAGE_SIZE }}Gi"
+  register: prometheus_pvc
+  when: _apb_plan_id == 'persistent'
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} the prometheus Deployment Config for Persistent plan"
+  openshift_v1_deployment_config:
+    state: "{{ state }}"
+    name: "{{ service_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    replicas: 1
+    selector:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    spec_template_metadata_labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    spec_template_spec_service_account_name: "{{ service_name }}"
+    containers:
+      - env:
+        image: "{{ prometheus_image }}:{{ prometheus_version }}"
+        name: "{{ service_name }}"
+        ports:
+        - container_port: "{{ prometheus_port }}"
+          protocol: TCP
+        volume_mounts:
+          - mount_path: "/{{ prometheus_configmap_rules_name }}"
+            name: "{{ prometheus_configmap_rules_name }}"
+          - mount_path: "/etc/{{ service_name }}"
+            name: "{{ prometheus_configmap_volume_name }}"
+          - mount_path: "/{{ service_name }}"
+            name: "{{ prometheus_data_volume_name }}"
+    volumes:
+      - name: "{{ prometheus_configmap_rules_name }}"
+        config_map:
+          name: "{{ prometheus_configmap_rules_name }}"
+      - name: "{{ prometheus_configmap_volume_name }}"
+        config_map:
+          defaultMode: 420
+          name: "{{ prometheus_configmap_name }}"
+      - name: "{{ prometheus_data_volume_name }}"
+        persistent_volume_claim:
+          claim_name: "{{ prometheus_pvc_name }}"
+    restart_policy: Always
+    termination_grace_period_seconds: 30
+    test: false
+    triggers:
+      - type: ConfigChange
+  register: prometheus_dc
+  when: _apb_plan_id == 'persistent'
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} the prometheus Deployment Config for Ephemeral plan"
+  openshift_v1_deployment_config:
+    state: "{{ state }}"
+    name: "{{ service_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    replicas: 1
+    selector:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    spec_template_metadata_labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    spec_template_spec_service_account_name: "{{ service_name }}"
+    containers:
+      - env:
+        image: "{{ prometheus_image }}:{{ prometheus_version }}"
+        name: "{{ service_name }}"
+        ports:
+        - container_port: "{{ prometheus_port }}"
+          protocol: TCP
+        volume_mounts:
+          - mount_path: "/{{ prometheus_configmap_rules_name }}"
+            name: "{{ prometheus_configmap_rules_name }}"
+          - mount_path: "/etc/{{ service_name }}"
+            name: "{{ prometheus_configmap_volume_name }}"
+          - mount_path: "/{{ service_name }}"
+            name: "{{ prometheus_data_volume_name }}"
+    volumes:
+      - name: "{{ prometheus_configmap_rules_name }}"
+        config_map:
+          name: "{{ prometheus_configmap_rules_name }}"
+      - name: "{{ prometheus_configmap_volume_name }}"
+        config_map:
+          defaultMode: 420
+          name: "{{ prometheus_configmap_name }}"
+      - name: "{{ prometheus_data_volume_name }}"
+        emptyDir: []
+    restart_policy: Always
+    termination_grace_period_seconds: 30
+    test: false
+    triggers:
+      - type: ConfigChange
+  register: prometheus_dc
+  when: _apb_plan_id == 'ephemeral'
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} the Prometheus Service"
+  k8s_v1_service:
+    state: "{{ state }}"
+    name: "{{ service_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    selector:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    ports:
+    - name: "{{ service_name }}-{{ prometheus_port }}"
+      port: "{{ prometheus_port }}"
+      target_port: "{{ prometheus_port }}"
+  register: prometheus_svc
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} the Prometheus Route"
+  openshift_v1_route:
+    state: "{{ state }}"
+    name: "{{ service_name }}"
+    namespace: '{{ namespace }}'
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    to_name: "{{ service_name }}"
+    port_target_port: "{{ service_name }}-{{ prometheus_port }}"
+  register: prometheus_route
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} the Prometheus Secret"
+  k8s_v1_secret:
+    state: "{{ state }}"
+    name: "{{ prometheus_secret_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name }}"
+    resource_definition:
+      kind: 'Secret'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_secret_name }}"
+        namespace: "{{ namespace }}"
+      string_data:
+        name: "{{ prometheus_secret_name }}"
+        type: "{{ prometheus_secret_name }}"
+        uri: "https://{{ prometheus_route.route.spec.host }}"
+  register: prometheus_secret

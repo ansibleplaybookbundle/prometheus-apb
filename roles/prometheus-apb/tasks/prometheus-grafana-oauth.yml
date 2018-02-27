@@ -1,0 +1,262 @@
+---
+- name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Set to {{ state }} ImageStream for Grafana image"
+  openshift_v1_image_stream:
+    state: "{{ state }}"
+    name: "{{ item.name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ item.name }}"
+    lookup_policy_local: False 
+    tags:
+      - name: "{{ item.tag_name }}"
+    docker_image_repository: "{{ item.image }}"
+  with_items:
+    - { name: "{{ service_name_graf }}", image: "{{ prometheus_grafana_image }}", tag_name: "{{ prometheus_grafana_version }}"  }
+    - { name: "{{ service_name_graf_proxy }}", image: "{{ prometheus_grafana_proxy_image }}", tag_name: "{{ prometheus_grafana_proxy_version }}"  }
+  register: prometheus_grafana_is
+
+- debug:
+    var: prometheus_sa_token 
+
+- name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Set to {{ state }} Openshift ConfigMap resource"
+  k8s_v1_config_map:
+    state: "{{ state }}"
+    name: "{{ prometheus_grafana_configmap_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf_proxy }}"
+    resource_definition:
+      kind: 'ConfigMap'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_grafana_configmap_name }}"
+        namespace: "{{ namespace }}"
+      data:
+        defaults.ini: "{{ lookup('template', 'prometheus-grafana-config-map.ini.j2') }}"
+  register: prometheus_grafana_cm
+
+- name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Set to {{ state }} Openshift Oauth-Proxy ConfigMap resource"
+  k8s_v1_config_map:
+    state: "{{ state }}"
+    name: "{{ prometheus_proxy_configmap_oauth_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_graf_name_proxy }}"
+    resource_definition:
+      kind: 'ConfigMap'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_proxy_configmap_oauth_name }}"
+        namespace: "{{ namespace }}"
+      data:
+        prometheus-grafana-oauth-proxy.yml: "{{ lookup('template', 'prometheus-oauth-proxy-config-map.yml.j2') }}"
+  register: prometheus_grafana_cm
+
+- name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Set to {{ state }} Grafana PVC for Persistent plan"
+  k8s_v1_persistent_volume_claim:
+    state: "{{ state }}"
+    name: "{{ prometheus_grafana_pvc_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_graf_name_proxy }}"
+    access_modes:
+      - ReadWriteOnce
+    resources_requests:
+      storage: "{{ GRAFANA_STORAGE_SIZE }}Gi"
+  register: grafana_pvc
+  when: _apb_plan_id == 'persistent'
+
+- name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Set to {{ state }} Grafana Service"
+  k8s_v1_service:
+    state: "{{ state }}"
+    name: "{{ service_name_graf_proxy }}"
+    namespace: "{{ namespace }}"
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: "{{ prometheus_grafana_proxy_tls_secret_name }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_graf_name_proxy }}"
+    selector:
+      app: "{{ service_name }}"
+      service: "{{ service_graf_name_proxy }}"
+    ports:
+    - name: "{{ service_name_graf_proxy }}-{{ prometheus_grafana_proxy_svc_port }}"
+      port: "{{ prometheus_grafana_proxy_svc_port }}"
+      target_port: "{{ prometheus_grafana_proxy_container_port }}"
+  register: prometheus_grafana_svc
+
+- name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Set to {{ state }} the Prometheus Route"
+  openshift_v1_route:
+    state: "{{ state }}"
+    name: "{{ service_name_graf_proxy }}"
+    namespace: '{{ namespace }}'
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf_proxy }}"
+    to_name: "{{ service_name_graf_proxy }}"
+    port_target_port: "{{ service_name_graf_proxy }}-{{ prometheus_grafana_proxy_svc_port }}"
+    tls_termination: 'reencrypt'
+  register: prometheus_grafana_route
+
+- name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Set to {{ state }} the Grafana Deployment Config for Persistent plan"
+  openshift_v1_deployment_config:
+    state: "{{ state }}"
+    name: "{{ service_name_graf_proxy }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf_proxy }}"
+    replicas: 1
+    selector:
+      app: "{{ service_name }}"
+      service: "{{ service_graf_name_proxy }}"
+    spec_template_metadata_labels:
+      app: "{{ service_name }}"
+      service: "{{ service_graf_name_proxy }}"
+    spec_template_spec_service_account_name: "{{ service_name_proxy }}"
+    containers:
+      ## Oauth-Proxy DC
+      - name: "{{ service_name_graf_proxy }}"
+        image: "{{ prometheus_grafana_proxy_image }}:{{ prometheus_grafana_proxy_version }}"
+        ports:
+        - container_port: "{{ prometheus_grafana_proxy_container_port }}"
+          protocol: TCP
+        args:
+          - --provider=openshift
+          - --openshift-service-account={{ service_name_graf_proxy }}
+          - --config=/{{ service_name_graf_proxy }}/prometheus-grafana-oauth-proxy.yml
+          - --openshift-sar={"namespace":"{{ namespace }}","resource":"deploymentconfigs","name":"{{ service_name }}","verb":"update"}
+        volume_mounts:
+          - mount_path: '/etc/tls/private'
+            name: "{{ prometheus_grafana_proxy_tls_secret_name }}"
+          - mount_path: '/{{ service_name_graf_proxy }}'
+            name: "{{ prometheus_grafana_proxy_configmap_oauth_name }}"
+      ## Prometheus DC
+      - name: "{{ service_name }}"
+        image: "{{ prometheus_grafana_image }}:{{ prometheus_grafana_version }}"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - container_port: "{{ prometheus_grafana_port }}"
+          protocol: TCP
+        volume_mounts:
+          - mount_path: "/etc/grafana"
+            name: "{{ prometheus_grafana_configmap_volume_name }}"
+          - mount_path: "/var/lib/grafana"
+            name: "{{ prometheus_grafana_data_volume_name }}"
+    volumes:
+      - name: "{{ prometheus_grafana_configmap_volume_name }}"
+        config_map:
+          defaultMode: 420
+          name: "{{ prometheus_grafana_configmap_name }}"
+      - name: "{{ prometheus_grafana_data_volume_name }}"
+        persistent_volume_claim:
+          claim_name: "{{ prometheus_grafana_pvc_name }}"
+      - name: "{{ prometheus_grafana_proxy_configmap_oauth_name }}"
+        config_map:
+          name: "{{ prometheus_grafana_proxy_configmap_oauth_name }}"
+      - name: "{{ prometheus_grafana_proxy_tls_secret_name }}"
+        secret:
+          secret_name: "{{ prometheus_grafana_proxy_tls_secret_name }}"
+    restart_policy: Always
+    termination_grace_period_seconds: 30
+    test: false
+    triggers:
+      - type: ConfigChange
+  register: prometheus_grafana_dc
+  when: _apb_plan_id == 'persistent'
+
+- name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Set to {{ state }} the Prometheus Deployment Config for Ephemeral plan"
+  openshift_v1_deployment_config:
+    state: "{{ state }}"
+    name: "{{ service_name_graf_proxy }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf_proxy }}"
+    replicas: 1
+    selector:
+      app: "{{ service_name }}"
+      service: "{{ service_graf_name_proxy }}"
+    spec_template_metadata_labels:
+      app: "{{ service_name }}"
+      service: "{{ service_graf_name_proxy }}"
+    spec_template_spec_service_account_name: "{{ service_name_proxy }}"
+    containers:
+      ## Oauth-Proxy DC
+      - name: "{{ service_name_graf_proxy }}"
+        image: "{{ prometheus_grafana_proxy_image }}:{{ prometheus_grafana_proxy_version }}"
+        ports:
+        - container_port: "{{ prometheus_grafana_proxy_container_port }}"
+          protocol: TCP
+        args:
+          - --provider=openshift
+          - --openshift-service-account={{ service_name_graf_proxy }}
+          - --config=/{{ service_name_graf_proxy }}/prometheus-grafana-oauth-proxy.yml
+          - --openshift-sar={"namespace":"{{ namespace }}","resource":"deploymentconfigs","name":"{{ service_name }}","verb":"update"}
+        volume_mounts:
+          - mount_path: '/etc/tls/private'
+            name: "{{ prometheus_grafana_proxy_tls_secret_name }}"
+          - mount_path: '/{{ service_name_graf_proxy }}'
+            name: "{{ prometheus_grafana_proxy_configmap_oauth_name }}"
+      ## Prometheus DC
+      - name: "{{ service_name }}"
+        image: "{{ prometheus_grafana_image }}:{{ prometheus_grafana_version }}"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - container_port: "{{ prometheus_grafana_port }}"
+          protocol: TCP
+        volume_mounts:
+          - mount_path: "/etc/grafana"
+            name: "{{ prometheus_grafana_configmap_volume_name }}"
+          - mount_path: "/var/lib/grafana"
+            name: "{{ prometheus_grafana_data_volume_name }}"
+    volumes:
+      - name: "{{ prometheus_grafana_configmap_volume_name }}"
+        config_map:
+          defaultMode: 420
+          name: "{{ prometheus_grafana_configmap_name }}"
+      - name: "{{ prometheus_grafana_data_volume_name }}"
+        emptyDir: []
+      - name: "{{ prometheus_grafana_proxy_configmap_oauth_name }}"
+        config_map:
+          name: "{{ prometheus_grafana_proxy_configmap_oauth_name }}"
+      - name: "{{ prometheus_grafana_proxy_tls_secret_name }}"
+        secret:
+          secret_name: "{{ prometheus_grafana_proxy_tls_secret_name }}"
+    restart_policy: Always
+    termination_grace_period_seconds: 30
+    test: false
+    triggers:
+      - type: ConfigChange
+  register: prometheus_grafana_dc
+  when: _apb_plan_id == 'ephemeral'
+
+## Add Datasource from Prometheus server
+- name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Create payload for Grafana source addition" 
+  set_fact:
+    payload_data: "{{ grafana_datasource_payload | to_json }}"
+  with_items:
+    - { name: 'Prometheus', type:'prometheus', url: "{{ prometheus_route.route.spec.host }}", token: "{{ prometheus_sa_token }}" }
+
+- debug:
+    var: payload_data
+
+- name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Add datasource for Grafana" 
+  uri:
+    url: "https://{{ prometheus_grafana_route.route.spec.host }}/api/datasources"
+    user: "{{ prometheus_sa_token }}"
+    force_basic_auth: yes
+    method: POST
+    body: "{{ payload_data }}"
+    body_format: json
+    return_content: yes
+    headers:
+      Content-Type: "Content-Type: application/json"
+  register: datasource_addition
+
+- debug:
+    var: datasource_addition 
