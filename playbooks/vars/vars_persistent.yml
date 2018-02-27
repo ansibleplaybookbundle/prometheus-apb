@@ -4,8 +4,11 @@ _apb_plan_id: 'persistent'
 PROMETHEUS_SECURED_DEPLOYMENT: True
 PROMETHEUS_STORAGE_SIZE: 1
 PROMETHEUS_AM_STORAGE_SIZE: 1
+PROMETHEUS_GRAF_STORAGE_SIZE: 1
 SMTP_HOST: 'localhost'
 SMTP_PORT: 25
 SMTP_FROM: 'alertmanager@example.org'
 SMTP_AUTH_USER: 'alertmanager' 
 SMTP_AUTH_PASS: 'password'
+DEPLOY_GRAFANA: true
+
