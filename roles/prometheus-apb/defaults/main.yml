@@ -37,7 +37,8 @@ prometheus_alertmanager_pvc_name: "{{ service_name_am }}-claim"
 
 ## Grafana
 service_name_graf: "{{ service_name }}-grafana"
-prometheus_grafana_image: 'docker.io/grafana/grafana'
+#prometheus_grafana_image: 'docker.io/grafana/grafana'
+prometheus_grafana_image: 'docker.io/mrsiano/grafana-ocp'
 prometheus_grafana_version: 'latest'
 prometheus_grafana_configmap_name: "{{ service_name_graf }}-config-map"
 prometheus_grafana_configmap_templates_name: "{{ service_name_graf }}-templates-configmap"

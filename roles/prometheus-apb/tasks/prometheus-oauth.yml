@@ -1,4 +1,11 @@
 ---
+- name: '[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Set variables to renderize Service Account template'
+  set_fact:
+    resource_name: "{{ service_name_proxy }}" 
+    resource_kind: 'Route'
+    proxy_container_port: "{{ prometheus_proxy_container_port }}"
+    upstream_port: "{{ prometheus_port }}"
+
 - name: '[PROMETHEUS-OAUTH][{{ mode | upper }}] Renderize template of Service Account'
   template:
     src: 'prometheus-oauth-service-account.yml.j2'

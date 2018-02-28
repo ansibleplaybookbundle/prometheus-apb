@@ -1,10 +1,10 @@
 ## Oauth-Proxy Config File
 ## https://github.com/openshift/oauth-proxy
 
-https_address = ":{{ item.proxy_container_port | default(prometheus_proxy_container_port) }}"
+https_address = ":{{ proxy_container_port | default(prometheus_proxy_container_port) }}"
 tls_cert_file = '/etc/tls/private/tls.crt'
 tls_key_file = '/etc/tls/private/tls.key'
-upstreams = ["http://localhost:{{ item.upstream_port | default(prometheus_port) }}/"]
+upstreams = ["http://localhost:{{ upstream_port | default(prometheus_port) }}/"]
 ssl_insecure_skip_verify = "{{ prometheus_proxy_tls_skip_verify }}"
 cookie_secret = "{{ prometheus_proxy_cookie_secret }}"
 
