@@ -198,7 +198,7 @@
         args:
           - --provider=openshift
           - --openshift-service-account={{ service_name_graf_proxy }}
-          - --config=/{{ service_name_proxy }}/prometheus-grafana-oauth-proxy.yml
+          - --config=/{{ service_name_graf_proxy }}/prometheus-grafana-oauth-proxy.yml
           - --openshift-sar={"namespace":"{{ namespace }}","resource":"deploymentconfigs","name":"{{ service_name_graf }}","verb":"update"}
           - --skip-auth-regex=^/metrics,/api/datasources,/api/dashboards
         volume_mounts:
@@ -206,7 +206,7 @@
             name: "{{ prometheus_grafana_proxy_tls_secret_name }}"
           - mount_path: '/{{ service_name_graf_proxy }}'
             name: "{{ prometheus_grafana_proxy_configmap_oauth_name }}"
-      ## Prometheus DC
+      ## Grafana
       - name: "{{ service_name_graf }}"
         image: "{{ prometheus_grafana_image }}:{{ prometheus_grafana_version }}"
         imagePullPolicy: Always
@@ -220,6 +220,19 @@
             name: "{{ prometheus_grafana_data_volume_name }}"
           - mount_path: "{{ prometheus_grafana_base_path }}/dashboards"
             name: "{{ prometheus_grafana_dashboards_configmap_name }}"
+        command: ['./bin/grafana-server']
+        liveness_probe:
+          initial_delay_seconds: 30
+          httpGet:
+            port: 3000
+          timeout_seconds: 3
+          period_seconds: 10
+        readiness_probe:
+          initial_delay_seconds: 30
+          httpGet:
+            port: 3000
+          timeout_seconds: 3
+          period_seconds: 10
     volumes:
       - name: "{{ prometheus_grafana_configmap_name }}"
         config_map:
@@ -229,7 +242,7 @@
           claim_name: "{{ prometheus_grafana_data_pvc_name }}"
       - name: "{{ prometheus_grafana_dashboards_configmap_name }}"
         config_map:
-          name: "{{ prometheus_grafana_dash_configmap_name }}"
+          name: "{{ prometheus_grafana_dashboards_configmap_name }}"
       - name: "{{ prometheus_grafana_proxy_configmap_oauth_name }}"
         config_map:
           name: "{{ prometheus_grafana_proxy_configmap_oauth_name }}"

@@ -2,6 +2,11 @@
 
 Prometheus APB Changelog
 
+## [1.3] - 2018-03-02
+### Added
+- Added Grafana deployment as a boolean on persistent and ephemeral plan
+- Added support for dashboard provision base on files (only on grafana 5+)
+
 ## [1.2] - 2018-02-22
 ### Added
 - Added CI/CD tests on TravisCI

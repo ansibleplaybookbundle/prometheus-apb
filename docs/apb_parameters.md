@@ -7,6 +7,11 @@
   - _Type_: Bool
   - _Description_: 'Deploy Prometheus with Oauth-Proxy sidecar'
 
+- **DEPLOY_GRAFANA**
+  - _Default_: True
+  - _Type_: Bool
+  - _Description_: 'Deploy Grafana with Oauth-Proxy sidecar'
+
 ## Prometheus Alertmanager Variables
 
 - **SMTP_HOST**
@@ -54,3 +59,8 @@
   - _Default_: '10'
   - _Type_: Number
   - _Description_: 'Prometheus Alert Manager Storage Size (Gb)'
+
+- **PROMETHEUS_GRAFANA_STORAGE_SIZE**
+  - _Default_: '10'
+  - _Type_: Number
+  - _Description_: 'Prometheus Grafana Storage Size (Gb)'
