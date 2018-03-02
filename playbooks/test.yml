@@ -12,11 +12,11 @@
     playbook_debug: true
 
   post_tasks:
-    #  - name: "[TEST][EPHEMERAL] Pre-load variables for testing"
-    #include_vars: vars/vars_ephemeral.yml
+  - name: "[TEST][EPHEMERAL] Pre-load variables for testing"
+    include_vars: vars/vars_ephemeral.yml
 
-    #- name: "[TEST][{{ _apb_plan_id }}] Load testing tasks"
-    #import_tasks: test_tasks.yml
+  - name: "[TEST][{{ _apb_plan_id }}] Load testing tasks"
+    import_tasks: test_tasks.yml
 
   - name: "[TEST][PERSISTENT] Pre-load variables for testing"
     include_vars: vars/vars_persistent.yml
