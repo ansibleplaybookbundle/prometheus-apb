@@ -331,7 +331,7 @@
 
 - name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Ensure that Grafana server is ready"
   uri:
-    url: "https://{{ prometheus_grafana_route.route.spec.host }}"
+    url: "https://{{ prometheus_grafana_svc.service.spec.cluster_ip }}"
     method: GET
     return_content: yes
     validate_certs: no
@@ -346,7 +346,7 @@
   set_fact:
     payload_data: "{{ prometheus_grafana_datasource_payload | to_json }}"
   with_items:
-    - { name: 'Prometheus', type: 'prometheus', url: "{{ prometheus_route.route.spec.host }}", token: "{{ prometheus_grafana_sa_token }}" }
+    - { name: 'Prometheus', type: 'prometheus', url: "{{ prometheus_svc.service.spec.cluster_ip }}", token: "{{ prometheus_grafana_sa_token }}" }
 
 - debug:
     var: payload_data
@@ -354,7 +354,8 @@
 - block:
   - name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Add datasource for Grafana" 
     uri:
-      url: "https://{{ prometheus_grafana_route.route.spec.host }}/api/datasources"
+      url: "https://{{ prometheus_grafana_svc.service.spec.cluster_ip }}/api/datasources"
+      validate_certs: no
       user: "{{ prometheus_sa_token }}"
       force_basic_auth: yes
       method: POST

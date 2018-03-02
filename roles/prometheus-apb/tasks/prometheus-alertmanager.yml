@@ -109,7 +109,7 @@
     triggers:
       - type: ConfigChange
   register: prometheus_am_dc
-  when: mode == 'ephemeral'
+  when: _apb_plan_id == 'ephemeral'
 
 - name: "[PROMETHEUS-ALERTMANAGER][{{ mode | upper }}] Set to {{ state }} the Prometheus-AlertManager Deployment Config for Persistent plan"
   openshift_v1_deployment_config:
@@ -156,7 +156,7 @@
     triggers:
       - type: ConfigChange
   register: prometheus_am_dc
-  when: mode == 'persistent'
+  when: _apb_plan_id == 'persistent'
 
 - name: "[PROMETHEUS-ALERTMANAGER][{{ mode | upper }}] Set to {{ state }} the Prometheus-Alertmanager Service"
   k8s_v1_service:

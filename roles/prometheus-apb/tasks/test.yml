@@ -26,3 +26,22 @@
     msg: "Test Failed. Error connecting with Prometheus Server. Data - {{ webpage }}"
   when: webpage.failed | bool
 
+- name: "[PROMETHEUS-GRAFANA-APB][{{ mode | upper }}] Check the Grafana server is accesible"
+  uri:
+    url: "{{ scheme }}://{{ prometheus_grafana_svc.service.spec.cluster_ip }}"
+    return_content: yes
+    validate_certs: no
+  register: grafana
+  retries: 10
+  delay: 20
+  failed_when: grafana.status == 404
+  until: '"Sign in with an OpenShift account" in webpage.content'
+  when: DEPLOY_GRAFANA | bool
+
+- name: "[PROMETHEUS APB][{{ mode | upper }}] Saving Tests results on error"
+  asb_save_test_result:
+    fail: True
+    msg: "Test Failed. Error connecting with Prometheus Server. Data - {{ webpage }}"
+  when:
+    - webpage.failed | bool
+    - DEPLOY_GRAFANA | bool

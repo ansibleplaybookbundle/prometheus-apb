@@ -1,6 +1,6 @@
 # Prometheus APB
 
-[![Build Status](https://travis-ci.org/RHsyseng/prometheus-apb.svg?branch=master)](https://travis-ci.org/RHsyseng/prometheus-apb)
+[![Build Status](https://travis-ci.org/ansibleplaybookbundle/prometheus-apb.svg?branch=master)](https://travis-ci.org/ansibleplaybookbundle/prometheus-apb)
 
 ## Description
 
