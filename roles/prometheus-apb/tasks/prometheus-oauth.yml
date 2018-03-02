@@ -1,4 +1,11 @@
 ---
+- name: '[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Set variables to renderize Service Account template'
+  set_fact:
+    resource_name: "{{ service_name_proxy }}" 
+    resource_kind: 'Route'
+    proxy_container_port: "{{ prometheus_proxy_container_port }}"
+    upstream_port: "{{ prometheus_port }}"
+
 - name: '[PROMETHEUS-OAUTH][{{ mode | upper }}] Renderize template of Service Account'
   template:
     src: 'prometheus-oauth-service-account.yml.j2'
@@ -19,7 +26,7 @@
     name: "{{ item.name }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ item.name }}"
+      app: "{{ service_name }}"
       name: "{{ item.name }}"
     lookup_policy_local: False 
     tags:
@@ -65,7 +72,7 @@
     name: "{{ prometheus_configmap_name }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ service_name_proxy }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_proxy }}"
     resource_definition:
       kind: 'ConfigMap'
@@ -83,7 +90,7 @@
     name: "{{ prometheus_proxy_configmap_oauth_name }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ service_name_proxy }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_proxy }}"
     resource_definition:
       kind: 'ConfigMap'
@@ -93,6 +100,8 @@
         namespace: "{{ namespace }}"
       data:
         prometheus-oauth-proxy.yml: "{{ lookup('template', 'prometheus-oauth-proxy-config-map.yml.j2') }}"
+  with_items:
+    - { proxy_container_port: "{{ prometheus_proxy_container_port }}", upstream_port: "{{ prometheus_port }}" }
   register: prometheus_cm
 
 - name: "[PROMETHEUS-OAUTH][{{ mode | upper }}] Set to {{ state }} Openshift ConfigMap resource with Prometheus Rules"
@@ -101,7 +110,7 @@
     name: "{{ prometheus_configmap_rules_name }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ service_name_proxy }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_proxy }}"
     resource_definition:
       kind: 'ConfigMap'
@@ -120,7 +129,7 @@
     name: "{{ prometheus_pvc_name }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ service_name_proxy }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_proxy }}"
     access_modes:
       - ReadWriteOnce
@@ -137,10 +146,10 @@
     annotations:
       service.alpha.openshift.io/serving-cert-secret-name: "{{ prometheus_proxy_tls_secret_name }}"
     labels:
-      app: "{{ service_name_proxy }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_proxy }}"
     selector:
-      app: "{{ service_name_proxy }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_proxy }}"
     ports:
     - name: "{{ service_name_proxy }}-{{ prometheus_proxy_svc_port }}"
@@ -154,7 +163,7 @@
     name: "{{ service_name_proxy }}"
     namespace: '{{ namespace }}'
     labels:
-      app: "{{ service_name_proxy }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_proxy }}"
     to_name: "{{ service_name_proxy }}"
     port_target_port: "{{ service_name_proxy }}-{{ prometheus_proxy_svc_port }}"
@@ -167,14 +176,14 @@
     name: "{{ service_name_proxy }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ service_name_proxy }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_proxy }}"
     replicas: 1
     selector:
-      app: "{{ service_name_proxy }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_proxy }}"
     spec_template_metadata_labels:
-      app: "{{ service_name_proxy }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_proxy }}"
     spec_template_spec_service_account_name: "{{ service_name_proxy }}"
     containers:
@@ -197,7 +206,7 @@
       ## Prometheus DC
       - name: "{{ service_name }}"
         image: "{{ prometheus_image }}:{{ prometheus_version }}"
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - container_port: "{{ prometheus_port }}"
           protocol: TCP
@@ -239,14 +248,14 @@
     name: "{{ service_name_proxy }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ service_name_proxy }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_proxy }}"
     replicas: 1
     selector:
-      app: "{{ service_name_proxy }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_proxy }}"
     spec_template_metadata_labels:
-      app: "{{ service_name_proxy }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_proxy }}"
     spec_template_spec_service_account_name: "{{ service_name_proxy }}"
     containers:
@@ -269,7 +278,7 @@
       ## Prometheus DC
       - name: "{{ service_name }}"
         image: "{{ prometheus_image }}:{{ prometheus_version }}"
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - container_port: "{{ prometheus_port }}"
           protocol: TCP
@@ -310,7 +319,7 @@
     name: "{{ prometheus_secret_name }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ service_name_proxy }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_proxy }}"
     resource_definition:
       kind: 'Secret'

@@ -5,7 +5,7 @@
     name: "{{ service_name_am }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ service_name_am }}"
+      app: "{{ service_name }}"
       name: "{{ service_name_am }}"
     lookup_policy_local: False 
     tags:
@@ -19,7 +19,7 @@
     name: "{{ prometheus_alertmanager_configmap_name }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ service_name_am }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_am }}"
     resource_definition:
       kind: 'ConfigMap'
@@ -37,7 +37,7 @@
     name: "{{ prometheus_alertmanager_configmap_templates_name }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ service_name_am }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_am }}"
     resource_definition:
       kind: 'ConfigMap'
@@ -56,7 +56,7 @@
     name: "{{ prometheus_alertmanager_pvc_name }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ service_name_am }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_am }}"
     access_modes:
       - ReadWriteOnce
@@ -71,14 +71,14 @@
     name: "{{ service_name_am }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ service_name_am }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_am }}"
     replicas: 1
     selector:
-      app: "{{ service_name_am }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_am }}"
     spec_template_metadata_labels:
-      app: "{{ service_name_am }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_am }}"
     containers:
       - env:
@@ -109,7 +109,7 @@
     triggers:
       - type: ConfigChange
   register: prometheus_am_dc
-  when: mode == 'ephemeral'
+  when: _apb_plan_id == 'ephemeral'
 
 - name: "[PROMETHEUS-ALERTMANAGER][{{ mode | upper }}] Set to {{ state }} the Prometheus-AlertManager Deployment Config for Persistent plan"
   openshift_v1_deployment_config:
@@ -117,14 +117,14 @@
     name: "{{ service_name_am }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ service_name_am }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_am }}"
     replicas: 1
     selector:
-      app: "{{ service_name_am }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_am }}"
     spec_template_metadata_labels:
-      app: "{{ service_name_am }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_am }}"
     containers:
       - env:
@@ -156,7 +156,7 @@
     triggers:
       - type: ConfigChange
   register: prometheus_am_dc
-  when: mode == 'persistent'
+  when: _apb_plan_id == 'persistent'
 
 - name: "[PROMETHEUS-ALERTMANAGER][{{ mode | upper }}] Set to {{ state }} the Prometheus-Alertmanager Service"
   k8s_v1_service:
@@ -164,10 +164,10 @@
     name: "{{ service_name_am }}"
     namespace: "{{ namespace }}"
     labels:
-      app: "{{ service_name_am }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_am }}"
     selector:
-      app: "{{ service_name_am }}"
+      app: "{{ service_name }}"
       service: "{{ service_name_am }}"
     ports:
     - name: "{{ service_name_am }}-{{ prometheus_alertmanager_port }}"
