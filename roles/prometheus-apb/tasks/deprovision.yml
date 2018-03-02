@@ -51,7 +51,7 @@
   with_items:
     - "{{ prometheus_pvc_name }}"
     - "{{ prometheus_alertmanager_pvc_name }}"
-    - "{{ prometheus_grafana_pvc_name }}"
+    - "{{ prometheus_grafana_data_pvc_name }}"
   when: _apb_plan_id == 'persistent'
 
 - name: "[PROMETHEUS APB][{{ mode | upper }}] Deprovision Prometheus Deployment Config"
