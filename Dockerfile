@@ -9,7 +9,7 @@ USER apb
 
 LABEL "com.redhat.apb.version"="1.3.0"
 LABEL "com.redhat.apb.spec"=\
-"LS0tCnZlcnNpb246IDEuMgpuYW1lOiBwcm9tZXRoZXVzLWFwYgpkZXNjcmlwdGlvbjogRGVwbG95\
+"LS0tCnZlcnNpb246IDEuMApuYW1lOiBwcm9tZXRoZXVzLWFwYgpkZXNjcmlwdGlvbjogRGVwbG95\
 IFByb21ldGhldXMgb24geW91ciBQcm9qZWN0CmJpbmRhYmxlOiBGYWxzZQphc3luYzogb3B0aW9u\
 YWwKbWV0YWRhdGE6CiAgZGlzcGxheU5hbWU6IFByb21ldGhldXMgKEFQQikKICBpbWFnZVVybDog\
 aHR0cHM6Ly9hdmF0YXJzMS5naXRodWJ1c2VyY29udGVudC5jb20vdS8zMzgwNDYyP3M9MjAwJnY9\

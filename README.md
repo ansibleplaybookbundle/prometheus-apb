@@ -72,6 +72,10 @@ apb run --project prom-apb-test-01
 # Docs
 
 - [APB Testing](docs/apb_tests.md)
+- [APB Execution Modes](docs/apb_execution_modes.md)
+- [APB Parameters](docs/apb_parameters.md)
+- [Prometheus Config Maps](docs/prometheus-configmaps.md)
+- [APB Troubleshooting Guide](docs/troubleshooting.md)
 
 # Author
 
