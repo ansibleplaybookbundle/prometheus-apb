@@ -55,6 +55,25 @@
         defaults.ini: "{{ lookup('template', 'prometheus-grafana-config-map.ini.j2') }}"
   register: prometheus_grafana_cm
 
+# Feature only for Grafana 5+ version
+- name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Set to {{ state }} Grafana ConfigMap Dashboards resource"
+  k8s_v1_config_map:
+    state: "{{ state }}"
+    name: "{{ prometheus_grafana_dashboards_configmap_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf_proxy }}"
+    resource_definition:
+      kind: 'ConfigMap'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_grafana_dashboards_configmap_name }}"
+        namespace: "{{ namespace }}"
+      data:
+        default.yml: "{{ lookup('template', 'prometheus-grafana-dashboards-config-map.yml.j2') }}"
+  register: prometheus_grafana_dash_cm
+
 - name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Recover secret name"
   set_fact:
     prometheus_grafana_sa_token_name: "{{ item.name }}"
@@ -84,7 +103,6 @@
       name: "{{ service_name_graf_proxy }}"
       namespace: "{{ namespace }}"
 
-
 - name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Set to {{ state }} Oauth-Proxy ConfigMap resource"
   k8s_v1_config_map:
     state: "{{ state }}"
@@ -108,7 +126,7 @@
 - name: "[PROMETHEUS-GRAFANA-OAUTH][{{ mode | upper }}] Set to {{ state }} Grafana PVC for Persistent plan"
   k8s_v1_persistent_volume_claim:
     state: "{{ state }}"
-    name: "{{ prometheus_grafana_pvc_name }}"
+    name: "{{ prometheus_grafana_data_pvc_name }}"
     namespace: "{{ namespace }}"
     labels:
       app: "{{ service_name }}"
@@ -169,7 +187,7 @@
     spec_template_metadata_labels:
       app: "{{ service_name }}"
       service: "{{ service_name_graf_proxy }}"
-    spec_template_spec_service_account_name: "{{ service_name_proxy }}"
+    spec_template_spec_service_account_name: "{{ service_name_graf_proxy }}"
     containers:
       ## Oauth-Proxy DC
       - name: "{{ service_name_graf_proxy }}"
@@ -182,6 +200,7 @@
           - --openshift-service-account={{ service_name_graf_proxy }}
           - --config=/{{ service_name_proxy }}/prometheus-grafana-oauth-proxy.yml
           - --openshift-sar={"namespace":"{{ namespace }}","resource":"deploymentconfigs","name":"{{ service_name_graf }}","verb":"update"}
+          - --skip-auth-regex=^/metrics,/api/datasources,/api/dashboards
         volume_mounts:
           - mount_path: '/etc/tls/private'
             name: "{{ prometheus_grafana_proxy_tls_secret_name }}"
@@ -190,22 +209,27 @@
       ## Prometheus DC
       - name: "{{ service_name_graf }}"
         image: "{{ prometheus_grafana_image }}:{{ prometheus_grafana_version }}"
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - container_port: "{{ prometheus_grafana_port }}"
           protocol: TCP
         volume_mounts:
-          - mount_path: "/etc/grafana"
+          - mount_path: "{{ prometheus_grafana_base_path }}/conf"
             name: "{{ prometheus_grafana_configmap_name }}"
-          - mount_path: "/var/lib/grafana"
+          - mount_path: "{{ prometheus_grafana_base_path }}/data"
             name: "{{ prometheus_grafana_data_volume_name }}"
+          - mount_path: "{{ prometheus_grafana_base_path }}/dashboards"
+            name: "{{ prometheus_grafana_dashboards_configmap_name }}"
     volumes:
       - name: "{{ prometheus_grafana_configmap_name }}"
         config_map:
           name: "{{ prometheus_grafana_configmap_name }}"
       - name: "{{ prometheus_grafana_data_volume_name }}"
         persistent_volume_claim:
-          claim_name: "{{ prometheus_grafana_pvc_name }}"
+          claim_name: "{{ prometheus_grafana_data_pvc_name }}"
+      - name: "{{ prometheus_grafana_dashboards_configmap_name }}"
+        config_map:
+          name: "{{ prometheus_grafana_dash_configmap_name }}"
       - name: "{{ prometheus_grafana_proxy_configmap_oauth_name }}"
         config_map:
           name: "{{ prometheus_grafana_proxy_configmap_oauth_name }}"
@@ -235,7 +259,7 @@
     spec_template_metadata_labels:
       app: "{{ service_name }}"
       service: "{{ service_name_graf_proxy }}"
-    spec_template_spec_service_account_name: "{{ service_name_proxy }}"
+    spec_template_spec_service_account_name: "{{ service_name_graf_proxy }}"
     containers:
       ## Oauth-Proxy DC
       - name: "{{ service_name_graf_proxy }}"
@@ -248,6 +272,7 @@
           - --openshift-service-account={{ service_name_graf_proxy }}
           - --config=/{{ service_name_graf_proxy }}/prometheus-grafana-oauth-proxy.yml
           - --openshift-sar={"namespace":"{{ namespace }}","resource":"deploymentconfigs","name":"{{ service_name_graf }}","verb":"update"}
+          - --skip-auth-regex=^/metrics,/api/datasources,/api/dashboards
         volume_mounts:
           - mount_path: '/etc/tls/private'
             name: "{{ prometheus_grafana_proxy_tls_secret_name }}"
@@ -256,20 +281,21 @@
       ## Prometheus DC
       - name: "{{ service_name_graf }}"
         image: "{{ prometheus_grafana_image }}:{{ prometheus_grafana_version }}"
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - container_port: "{{ prometheus_grafana_port }}"
           protocol: TCP
         volume_mounts:
-          - mount_path: '/root/go/src/github.com/grafana/grafana/conf'
+          - mount_path: "{{ prometheus_grafana_base_path }}/conf"
             name: "{{ prometheus_grafana_configmap_name }}"
-          - mount_path: '/root/go/src/github.com/grafana/grafana/data'
+          - mount_path: "{{ prometheus_grafana_base_path }}/data"
             name: "{{ prometheus_grafana_data_volume_name }}"
+          - mount_path: "{{ prometheus_grafana_base_path }}/dashboards"
+            name: "{{ prometheus_grafana_dashboards_configmap_name }}"
         command: ['./bin/grafana-server']
         liveness_probe:
           initial_delay_seconds: 30
           httpGet:
-            path: /login
             port: 3000
           timeout_seconds: 3
           period_seconds: 10
@@ -286,6 +312,9 @@
           name: "{{ prometheus_grafana_configmap_name }}"
       - name: "{{ prometheus_grafana_data_volume_name }}"
         emptyDir: {}
+      - name: "{{ prometheus_grafana_dashboards_configmap_name }}"
+        config_map:
+          name: "{{ prometheus_grafana_dashboards_configmap_name }}"
       - name: "{{ prometheus_grafana_proxy_configmap_oauth_name }}"
         config_map:
           name: "{{ prometheus_grafana_proxy_configmap_oauth_name }}"

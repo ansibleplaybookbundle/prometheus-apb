@@ -206,7 +206,7 @@
       ## Prometheus DC
       - name: "{{ service_name }}"
         image: "{{ prometheus_image }}:{{ prometheus_version }}"
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - container_port: "{{ prometheus_port }}"
           protocol: TCP
@@ -278,7 +278,7 @@
       ## Prometheus DC
       - name: "{{ service_name }}"
         image: "{{ prometheus_image }}:{{ prometheus_version }}"
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - container_port: "{{ prometheus_port }}"
           protocol: TCP

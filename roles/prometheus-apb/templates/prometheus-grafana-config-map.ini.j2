@@ -186,16 +186,16 @@ snapshot_TTL_days = 90
 #################################### Users ####################################
 [users]
 # disable user signup / registration
-allow_sign_up = false
+allow_sign_up = true
 
 # Allow non admin users to create organizations
-allow_org_create = false
+allow_org_create = true
 
 # Set to true to automatically assign new users to the default organization (id 1)
 auto_assign_org = true
 
 # Default role new users will be automatically assigned (if auto_assign_org above is set to true)
-auto_assign_org_role = Viewer
+auto_assign_org_role = Admin
 
 # Require email validation before sign up completes
 verify_email_enabled = false
@@ -213,21 +213,21 @@ external_manage_info =
 
 [auth]
 # Set to true to disable (hide) the login form, useful if you use OAuth
-disable_login_form = false
+disable_login_form = true
 
 # Set to true to disable the signout link in the side menu. useful if you use auth.proxy
-disable_signout_menu = false
+disable_signout_menu = true
 
 #################################### Anonymous Auth ######################
 [auth.anonymous]
 # enable anonymous access
-enabled = false
+enabled = true
 
 # specify organization name that should be used for unauthenticated users
 org_name = Main Org.
 
 # specify role for unauthenticated users
-org_role = Viewer
+org_role = Admin
 
 #################################### Github Auth #########################
 [auth.github]
@@ -289,11 +289,11 @@ allowed_organizations =
 
 #################################### Basic Auth ##########################
 [auth.basic]
-enabled = true
+enabled = false
 
 #################################### Auth Proxy ##########################
 [auth.proxy]
-enabled = false
+enabled = true
 header_name = X-WEBAUTH-USER
 header_property = username
 auto_sign_up = true
@@ -309,14 +309,14 @@ allow_sign_up = true
 #################################### SMTP / Emailing #####################
 [smtp]
 enabled = false
-host = localhost:25
-user =
+host = {{ SMTP_HOST }}:{{ SMTP_PORT }}
+user = {{ SMTP_AUTH_USER }}
 # If the password contains # or ; you have to wrap it with trippel quotes. Ex """#password;"""
-password =
+password = {{ SMTP_AUTH_PASS }}
 cert_file =
 key_file =
-skip_verify = false
-from_address = admin@grafana.localhost
+skip_verify = true
+from_address = {{ SMTP_FROM }}
 from_name = Grafana
 ehlo_identity =
 
@@ -331,7 +331,7 @@ templates_pattern = emails/*.html
 mode = console file
 
 # Either "debug", "info", "warn", "error", "critical", default is "info"
-level = info
+level = error
 
 # optional settings to set different levels for specific loggers. Ex filters = sqlstore:debug
 filters =
@@ -391,7 +391,7 @@ exchange = grafana_events
 #################################### Dashboard JSON files ################
 [dashboards.json]
 enabled = false
-path = /var/lib/grafana/dashboards
+path = {{ prometheus_grafana_base_path }}/dashboards
 
 #################################### Usage Quotas ########################
 [quota]
