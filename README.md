@@ -1,6 +1,6 @@
 # Prometheus APB
 
-[![Build Status](https://travis-ci.org/RHsyseng/prometheus-apb.svg?branch=master)](https://travis-ci.org/RHsyseng/prometheus-apb)
+[![Build Status](https://travis-ci.org/ansibleplaybookbundle/prometheus-apb.svg?branch=master)](https://travis-ci.org/ansibleplaybookbundle/prometheus-apb)
 
 ## Description
 
@@ -50,16 +50,17 @@ apb run --project prom-apb-test-01
 - Authentication
 - Deprovision
 - APB Test
+- Graphana
+- Add ImageStream to manage tags easily
+- TravisCI/CD Testing
 
 ## Working on
 
-- Graphana
+- AlertBuffer
 
 ## To Do
 
-- AlertBuffer
 - Packaging
-- Add ImageStream to manage tags easily
 
 # References
 
@@ -71,6 +72,10 @@ apb run --project prom-apb-test-01
 # Docs
 
 - [APB Testing](docs/apb_tests.md)
+- [APB Execution Modes](docs/apb_execution_modes.md)
+- [APB Parameters](docs/apb_parameters.md)
+- [Prometheus Config Maps](docs/prometheus-configmaps.md)
+- [APB Troubleshooting Guide](docs/troubleshooting.md)
 
 # Author
 

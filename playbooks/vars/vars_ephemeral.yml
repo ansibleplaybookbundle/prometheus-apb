@@ -9,3 +9,4 @@ SMTP_PORT: 25
 SMTP_FROM: 'alertmanager@example.org'
 SMTP_AUTH_USER: 'alertmanager' 
 SMTP_AUTH_PASS: 'password'
+DEPLOY_GRAFANA: true

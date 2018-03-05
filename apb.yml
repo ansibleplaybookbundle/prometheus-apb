@@ -64,6 +64,15 @@ plans:
         title: Password to be authenticated on SMTP server
         display_group: AlertManager Config
 
+      ## Grafana Params 
+      - name: DEPLOY_GRAFANA
+        required: True
+        default: True
+        type: bool
+        title: Deploy Grafana server with Prometheus as datasource
+        display_group: Grafana Config
+
+
   - name: persistent
     description: Deployment of Prometheus for metrics and data view
     free: True
@@ -92,6 +101,12 @@ plans:
         default: 10
         type: number
         title: Prometheus Alert Manager Storage Size (Gb)
+        display_group: Container Specs
+      - name: PROMETHEUS_GRAFANA_STORAGE_SIZE
+        required: True
+        default: 10
+        type: number
+        title: Prometheus Grafana Storage Size (Gb)
         display_group: Container Specs
 
       ## AlertManager Params
@@ -130,3 +145,11 @@ plans:
         display_type: password
         title: Password to be authenticated on SMTP server
         display_group: AlertManager Config
+
+      ## Grafana params
+      - name: DEPLOY_GRAFANA
+        required: True
+        default: True
+        type: bool
+        title: Deploy Grafana server with Prometheus as datasource
+        display_group: Grafana Config
