@@ -1,0 +1,262 @@
+---
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} Grafana ServiceAccount"
+  k8s_v1_service_account:
+    state: "{{ state }}"
+    name: "{{ service_name_graf }}"
+    namespace: "{{ namespace }}"
+  register: prometheus_grafana_sa
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Recover secret name"
+  set_fact:
+    prometheus_grafana_sa_token_name: "{{ item.name }}"
+  with_list: "{{ prometheus_grafana_sa.service_account.secrets }}"
+  when: "'prometheus-grafana-token' in item.name"
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Recovering Service Account token"
+  k8s_v1_secret:
+    state: "{{ state }}"
+    name: "{{ prometheus_grafana_sa_token_name }}"
+    namespace: "{{ namespace }}"
+  register: prometheus_grafana_sa_token
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Creating a fact with the secret token of Service Account"
+  set_fact:
+    prometheus_grafana_sa_token: "{{ prometheus_grafana_sa_token.secret.data.token | b64decode }}"
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} RoleBinding for Service Account"
+  k8s_v1beta1_role_binding:
+    state: "{{ state }}"
+    name: "{{ service_name_graf }}-view"
+    namespace: "{{ namespace }}"
+    role_ref_name: view
+    role_ref_kind: ClusterRole
+    subjects:
+    - kind: ServiceAccount
+      name: "{{ service_name_graf }}"
+      namespace: "{{ namespace }}"
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} ImageStream for Grafana image"
+  openshift_v1_image_stream:
+    state: "{{ state }}"
+    name: "{{ item.name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ item.name }}"
+    lookup_policy_local: False 
+    tags:
+      - name: "{{ item.tag_name }}"
+    docker_image_repository: "{{ item.image }}"
+  with_items:
+    - { name: "{{ service_name_graf }}", image: "{{ prometheus_grafana_image }}", tag_name: "{{ prometheus_grafana_version }}"  }
+  register: prometheus_grafana_is
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} Grafana ConfigMap resource"
+  k8s_v1_config_map:
+    state: "{{ state }}"
+    name: "{{ prometheus_grafana_configmap_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf }}"
+    resource_definition:
+      kind: 'ConfigMap'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_grafana_configmap_name }}"
+        namespace: "{{ namespace }}"
+      data:
+        defaults.ini: "{{ lookup('template', 'prometheus-grafana-config-map.ini.j2') }}"
+  register: prometheus_grafana_cm
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} Grafana PVC for Persistent plan"
+  k8s_v1_persistent_volume_claim:
+    state: "{{ state }}"
+    name: "{{ prometheus_grafana_data_pvc_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf }}"
+    access_modes:
+      - ReadWriteOnce
+    resources_requests:
+      storage: "{{ PROMETHEUS_GRAFANA_STORAGE_SIZE }}Gi"
+  register: grafana_pvc
+  when: _apb_plan_id == 'persistent'
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} the Grafana Deployment Config for Persistent plan"
+  openshift_v1_deployment_config:
+    state: "{{ state }}"
+    name: "{{ service_name_graf }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf }}"
+    replicas: 1
+    selector:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf }}"
+    spec_template_metadata_labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf }}"
+    spec_template_spec_service_account_name: "{{ service_name_graf }}"
+    containers:
+      ## Grafana
+      - name: "{{ service_name_graf }}"
+        image: "{{ prometheus_grafana_image }}:{{ prometheus_grafana_version }}"
+        imagePullPolicy: Always
+        ports:
+        - container_port: "{{ prometheus_grafana_port }}"
+          protocol: TCP
+        volume_mounts:
+          - mount_path: "{{ prometheus_grafana_base_path }}/conf"
+            name: "{{ prometheus_grafana_configmap_name }}"
+          - mount_path: "{{ prometheus_grafana_base_path }}/data"
+            name: "{{ prometheus_grafana_data_volume_name }}"
+          - mount_path: "{{ prometheus_grafana_base_path }}/dashboards"
+            name: "{{ prometheus_grafana_dashboards_configmap_name }}"
+        command: ['./bin/grafana-server']
+        liveness_probe:
+          initial_delay_seconds: 30
+          httpGet:
+            port: 3000
+          timeout_seconds: 3
+          period_seconds: 10
+        readiness_probe:
+          initial_delay_seconds: 30
+          httpGet:
+            port: 3000
+          timeout_seconds: 3
+          period_seconds: 10
+    volumes:
+      - name: "{{ prometheus_grafana_configmap_name }}"
+        config_map:
+          name: "{{ prometheus_grafana_configmap_name }}"
+      - name: "{{ prometheus_grafana_data_volume_name }}"
+        persistent_volume_claim:
+          claim_name: "{{ prometheus_grafana_data_pvc_name }}"
+      - name: "{{ prometheus_grafana_dashboards_configmap_name }}"
+        config_map:
+          name: "{{ prometheus_grafana_dashboards_configmap_name }}"
+    restart_policy: Always
+    termination_grace_period_seconds: 30
+    test: false
+    triggers:
+      - type: ConfigChange
+  register: prometheus_grafana_dc
+  when: _apb_plan_id == 'persistent'
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} the Prometheus Deployment Config for Ephemeral plan"
+  openshift_v1_deployment_config:
+    state: "{{ state }}"
+    name: "{{ service_name_graf }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf }}"
+    replicas: 1
+    selector:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf }}"
+    spec_template_metadata_labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf }}"
+    spec_template_spec_service_account_name: "{{ service_name_graf }}"
+    containers:
+      ## Prometheus DC
+      - name: "{{ service_name_graf }}"
+        image: "{{ prometheus_grafana_image }}:{{ prometheus_grafana_version }}"
+        imagePullPolicy: Always
+        ports:
+        - container_port: "{{ prometheus_grafana_port }}"
+          protocol: TCP
+        volume_mounts:
+          - mount_path: "{{ prometheus_grafana_base_path }}/conf"
+            name: "{{ prometheus_grafana_configmap_name }}"
+          - mount_path: "{{ prometheus_grafana_base_path }}/data"
+            name: "{{ prometheus_grafana_data_volume_name }}"
+          - mount_path: "{{ prometheus_grafana_base_path }}/dashboards"
+            name: "{{ prometheus_grafana_dashboards_configmap_name }}"
+        command: ['./bin/grafana-server']
+        liveness_probe:
+          initial_delay_seconds: 30
+          httpGet:
+            port: 3000
+          timeout_seconds: 3
+          period_seconds: 10
+        readiness_probe:
+          initial_delay_seconds: 30
+          httpGet:
+            port: 3000
+          timeout_seconds: 3
+          period_seconds: 10
+    volumes:
+      - name: "{{ prometheus_grafana_configmap_name }}"
+        config_map:
+          defaultMode: 420
+          name: "{{ prometheus_grafana_configmap_name }}"
+      - name: "{{ prometheus_grafana_data_volume_name }}"
+        emptyDir: {}
+      - name: "{{ prometheus_grafana_dashboards_configmap_name }}"
+        config_map:
+          name: "{{ prometheus_grafana_dashboards_configmap_name }}"
+    restart_policy: Always
+    termination_grace_period_seconds: 30
+    test: false
+    triggers:
+      - type: ConfigChange
+  register: prometheus_grafana_dc
+  when: _apb_plan_id == 'ephemeral'
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} Grafana Service"
+  k8s_v1_service:
+    state: "{{ state }}"
+    name: "{{ service_name_graf }}"
+    namespace: "{{ namespace }}"
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/scheme: https
+      service.alpha.openshift.io/serving-cert-secret-name: "{{ prometheus_grafana_proxy_tls_secret_name }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf }}"
+    selector:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf }}"
+    ports:
+    - name: "{{ service_name_graf }}-{{ prometheus_grafana_port }}"
+      port: "{{ prometheus_grafana_port }}"
+      target_port: "{{ prometheus_grafana_port }}"
+  register: prometheus_grafana_svc
+
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} Grafana Route"
+  openshift_v1_route:
+    state: "{{ state }}"
+    name: "{{ service_name_graf }}"
+    namespace: '{{ namespace }}'
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf }}"
+    to_name: "{{ service_name_graf }}"
+    port_target_port: "{{ service_name_graf }}-{{ prometheus_grafana_port }}"
+  register: prometheus_grafana_route
+
+# Feature only for Grafana 5+ version
+- name: "[PROMETHEUS-GRAFANA][{{ mode | upper }}] Set to {{ state }} Grafana ConfigMap Dashboards resource"
+  k8s_v1_config_map:
+    state: "{{ state }}"
+    name: "{{ prometheus_grafana_dashboards_configmap_name }}"
+    namespace: "{{ namespace }}"
+    labels:
+      app: "{{ service_name }}"
+      service: "{{ service_name_graf_proxy }}"
+    resource_definition:
+      kind: 'ConfigMap'
+      apiVersion: 'v1'
+      metadata:
+        name: "{{ prometheus_grafana_dashboards_configmap_name }}"
+        namespace: "{{ namespace }}"
+      data:
+        default.yml: "{{ lookup('template', 'prometheus-grafana-dashboards-config-map.yml.j2') }}"
+  register: prometheus_grafana_dash_cm
+
