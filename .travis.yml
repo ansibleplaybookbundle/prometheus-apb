@@ -57,7 +57,7 @@ script:
   - export APB_NAME=prometheus-apb
   - apb build
   - sudo docker cp $(docker create docker.io/openshift/origin:$OPENSHIFT_VERSION):/bin/oc /usr/local/bin/oc
-  - oc cluster up --version=$OPENSHIFT_VERSION
+  - oc cluster up
   - oc login -u system:admin
   - oc new-project $APB_NAME
   - docker run --rm --net=host -v $HOME/.kube:/opt/apb/.kube:z -u $UID $APB_NAME test --extra-vars "travis=true" 
