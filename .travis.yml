@@ -8,56 +8,68 @@ python:
   - '2.7'
 
 stages:
-  - lint
-  - build
-  - test
+  - Lint
+  - 'Test 3.9'
+  - 'Test 3.10'
 
 env:
-  - ANSIBLE_ROLES_PATH=$ANSIBLE_ROLES_PATH:$PWD/roles OPENSHIFT_VERSION=latest
-  - ANSIBLE_ROLES_PATH=$ANSIBLE_ROLES_PATH:$PWD/roles OPENSHIFT_VERSION=v3.9.0
-
-before_install:
-  - sudo apt-get update -qq
-  - sudo sed -i "s/\DOCKER_OPTS=\"/DOCKER_OPTS=\"--insecure-registry=172.30.0.0\/16 /g" /etc/default/docker
-  - sudo cat /etc/default/docker
-  - sudo service docker restart
+  global:
+    - APB_NAME=prometheus-apb
+    - ANSIBLE_ROLES_PATH=$ANSIBLE_ROLES_PATH:$PWD/roles
 
 install:
-  - sudo apt-get install git
+  - sudo apt-get update -qq
+  - sudo apt-get install git jq
   - pip install --pre ansible apb yamllint
   - ansible-galaxy install ansible.kubernetes-modules
-  - git clone https://github.com/ansibleplaybookbundle/ansible-asb-modules.git $PWD/roles/ansibleplaybookbundle.asb-modules
 
 jobs:
   include:
-  - stage: lint
+  - stage: Lint
     python: '2.7'
     script:
+      - pip install --pre ansible apb yamllint
+      - ansible-galaxy install ansible.kubernetes-modules
+      - git clone https://github.com/ansibleplaybookbundle/ansible-asb-modules.git $PWD/roles/ansibleplaybookbundle.asb-modules
       # Verify all playbooks have valid syntax
       - |
         for PLAYBOOK in playbooks/{provision,deprovision,test}.yml
         do ansible-playbook $PLAYBOOK --syntax-check
         done
-  - stage: lint
-    python: '2.7'
-    script:
       # Verify apb.yml file is valid YAML
       - yamllint apb.yml
-        #   - stage: lint
-        #     python: '2.7'
-        #     script:
-        #       # Check if committed APB spec matches Dockerfile
-        #       - export DOCKERFILE_MD5_PRE=$(cat Dockerfile | md5sum | awk '{print $1}')
-        #       - apb build
-        #       - export DOCKERFILE_MD5_POS=$(head -n -1 Dockerfile | md5sum | awk '{print $1}')
-        #       - if [[ "${DOCKERFILE_MD5_PRE}" != "${DOCKERFILE_MD5_POS}" ]]; then echo "Committed APB spec differs from built apb.yml spec"; exit 1; fi
 
-# Test Stage
-script:
-  - export APB_NAME=prometheus-apb
-  - apb build
-  - sudo docker cp $(docker create docker.io/openshift/origin:$OPENSHIFT_VERSION):/bin/oc /usr/local/bin/oc
-  - oc cluster up --version=$OPENSHIFT_VERSION
-  - oc login -u system:admin
-  - oc new-project $APB_NAME
-  - docker run --rm --net=host -v $HOME/.kube:/opt/apb/.kube:z -u $UID $APB_NAME test --extra-vars "travis=true" 
+  - stage: 'Test 3.9'
+    env:
+      - OPENSHIFT_VERSION="v3.9" 
+        OC_CMD="oc cluster up --version=$OPENSHIFT_VERSION"
+    script:
+      - sudo sed -i "s/\DOCKER_OPTS=\"/DOCKER_OPTS=\"--insecure-registry=172.30.0.0\/16 /g" /etc/default/docker
+      - sudo cat /etc/default/docker
+      - sudo service docker restart
+      - docker build -t $APB_NAME .
+      - export B64_SPEC=`base64 apb.yml | tr -d '\n'`
+      - export APB_LABEL=`docker inspect --format='{{json .Config.Labels}}' $(docker images -q | head -n 1) | jq '."com.redhat.apb.spec"' | cut -d'"' -f2 | tr -d '\n'`
+      - if [ "$B64_SPEC" != "$APB_LABEL" ]; then { echo "APB Spec Label doesn't match, run - apb prepare"; exit -1; }; fi;
+      - sudo docker cp $(docker create docker.io/openshift/origin:$OPENSHIFT_VERSION):/bin/oc /usr/local/bin/oc
+      - $OC_CMD
+      - oc new-project $APB_NAME
+      - docker run --rm --net=host -v $HOME/.kube:/opt/apb/.kube:z -u $UID $APB_NAME test --extra-vars "travis=true"
+
+  - stage: 'Test 3.10'
+    env:
+      - OPENSHIFT_VERSION="v3.10"
+        OC_CMD="oc cluster up"
+    script:
+      - sudo sed -i "s/\DOCKER_OPTS=\"/DOCKER_OPTS=\"--insecure-registry=172.30.0.0\/16 /g" /etc/default/docker
+      - sudo cat /etc/default/docker
+      - sudo service docker restart
+      - docker build -t $APB_NAME .
+      - export B64_SPEC=`base64 apb.yml | tr -d '\n'`
+      - export APB_LABEL=`docker inspect --format='{{json .Config.Labels}}' $(docker images -q | head -n 1) | jq '."com.redhat.apb.spec"' | cut -d'"' -f2 | tr -d '\n'`
+      - if [ "$B64_SPEC" != "$APB_LABEL" ]; then { echo "APB Spec Label doesn't match, run - apb prepare"; exit -1; }; fi;
+      - sudo docker cp $(docker create docker.io/openshift/origin:$OPENSHIFT_VERSION):/bin/oc /usr/local/bin/oc
+      - $OC_CMD
+      - oc new-project $APB_NAME
+      - docker run --rm --net=host -v $HOME/.kube:/opt/apb/.kube:z -u $UID $APB_NAME test --extra-vars "travis=true"
+
