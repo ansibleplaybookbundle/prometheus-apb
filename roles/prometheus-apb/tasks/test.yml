@@ -36,7 +36,7 @@
   delay: 20
   failed_when: grafana.status == 404
   until: '"Sign in with an OpenShift account" in webpage.content'
-  when: DEPLOY_GRAFANA | bool
+  when: PROMETHEUS_SECURED_DEPLOYMENT and DEPLOY_GRAFANA | bool
 
 - name: "[PROMETHEUS APB][{{ mode | upper }}] Saving Tests results on error"
   asb_save_test_result:
@@ -44,4 +44,4 @@
     msg: "Test Failed. Error connecting with Prometheus Server. Data - {{ webpage }}"
   when:
     - webpage.failed | bool
-    - DEPLOY_GRAFANA | bool
+    - PROMETHEUS_SECURED_DEPLOYMENT and DEPLOY_GRAFANA | bool

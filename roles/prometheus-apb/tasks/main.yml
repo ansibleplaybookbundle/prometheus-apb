@@ -12,6 +12,10 @@
     include_tasks: prometheus.yml
     when: not PROMETHEUS_SECURED_DEPLOYMENT | bool
 
+  - name: "[PROMETHEUS APB][MAIN] Deploying Grafana"
+    include_tasks: prometheus-grafana.yml
+    when: not PROMETHEUS_SECURED_DEPLOYMENT and DEPLOY_GRAFANA | bool
+
   - name: "[PROMETHEUS APB][MAIN] Deploying Prometheus-Oauth"
     include_tasks: prometheus-oauth.yml
     when: PROMETHEUS_SECURED_DEPLOYMENT | bool
@@ -21,7 +25,7 @@
 
   - name: "[PROMETHEUS APB][MAIN] Deploying Prometheus-Grafana"
     include_tasks: prometheus-grafana-oauth.yml
-    when: DEPLOY_GRAFANA | bool
+    when: PROMETHEUS_SECURED_DEPLOYMENT and DEPLOY_GRAFANA | bool
   when: mode == 'provision'
 
 - block:
